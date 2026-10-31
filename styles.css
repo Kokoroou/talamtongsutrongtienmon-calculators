@@ -199,10 +199,6 @@ h1,h2,h3{font-family:var(--font-display);margin:0;font-weight:700;letter-spacing
 .fld:focus-within{outline:2px solid var(--focus);outline-offset:1px}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:var(--s2)}
 .skill label{color:var(--icon)}
-.step{display:flex;align-items:center;gap:4px}
-.step input{text-align:center;flex:1;min-width:0;-moz-appearance:textfield}
-.step input::-webkit-outer-spin-button,.step input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
-.step button{width:40px;height:40px;border-radius:var(--r-ctl);border:1px solid var(--bd-soft);background:var(--cell-bg);color:var(--icon);display:grid;place-items:center;cursor:pointer;flex:none}
 .err{color:var(--cinnabar);font-size:var(--t0);font-weight:600}
 
 /* Dòng tên: tên + tổng ở bên trái, nút hành động cùng hàng ở bên phải */
@@ -317,3 +313,5 @@ h1,h2,h3{font-family:var(--font-display);margin:0;font-weight:700;letter-spacing
 .empty-slot{opacity:.8;border-style:dashed}
 .slots-leader{margin-bottom:var(--s4)}
 .slots-elders{margin-top:0}
+.form input[type=number]{-moz-appearance:textfield;appearance:textfield}
+.form input[type=number]::-webkit-outer-spin-button,.form input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}

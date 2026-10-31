@@ -11,7 +11,10 @@
   const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
   function setData(next) { data = next; window.Store.save(data); }
-  function go(v) { view = v; render(); window.scrollTo(0, 0); }
+  function go(v) {
+    view = v; render(); window.scrollTo(0, 0);
+    if (v.name === 'edit') { const n = document.getElementById('f-name'); if (n) n.focus(); }
+  }
   function showToast(html) {
     toast = html;
     clearTimeout(toastTimer);
@@ -147,9 +150,7 @@
     const d = view.id ? data.disciples.find((x) => x.id === view.id) : null;
     const cur = d || { name: '', total: '', levels: L.SKILLS.map(() => 0) };
     const lv = L.SKILLS.map((s, i) => `<div class="fld skill"><label for="lv${i}">${I(window.Icons.SKILL_ICONS[i], 16)}<span>${s}</span></label>
-      <div class="step"><button type="button" data-act="step" data-i="${i}" data-d="-1" aria-label="Giảm ${s}">${I('minus', 16)}</button>
-      <input id="lv${i}" type="number" inputmode="numeric" min="0" max="${L.MAX_LEVEL}" value="${cur.levels[i]}">
-      <button type="button" data-act="step" data-i="${i}" data-d="1" aria-label="Tăng ${s}">${I('plus', 16)}</button></div></div>`).join('');
+      <input id="lv${i}" type="number" inputmode="numeric" min="0" max="${L.MAX_LEVEL}" value="${cur.levels[i]}"></div>`).join('');
     return `<header class="top">${iconBtn('back', 'back', 'Hủy')}<h2>${d ? 'Sửa đệ tử' : 'Thêm đệ tử'}</h2><div class="grow"></div>
         <button class="btn primary small" data-act="save">${I('check', 16)}Lưu</button></header>
       <main class="main narrow"><div class="form">
@@ -289,14 +290,9 @@
         break;
       }
       case 'theme-reset': T.reset(); break;
-      case 'add': go({ name: 'edit', id: null }); break;
-      case 'edit': go({ name: 'edit', id: t.dataset.id }); break;
+      case 'add': hideToast(); go({ name: 'edit', id: null }); break;
+      case 'edit': hideToast(); go({ name: 'edit', id: t.dataset.id }); break;
       case 'pick': hideToast(); go({ name: 'transfer', id: t.dataset.id }); break;
-      case 'step': {
-        const input = document.getElementById('lv' + t.dataset.i);
-        input.value = L.clampLevel(Number(input.value) + Number(t.dataset.d));
-        break;
-      }
       case 'save': saveEdit(); break;
       case 'delete':
         if (!armed(t, 'Bấm lần nữa để xóa')) break;
@@ -338,7 +334,15 @@
   });
 
   app.addEventListener('change', (e) => {
+    if (/^lv\d+$/.test(e.target.id) && e.target.value !== '') e.target.value = L.clampLevel(Number(e.target.value));
     if (e.target.id === 'import-file' && e.target.files[0]) doImport(e.target.files[0]);
+  });
+
+  // Ctrl+Enter (hoặc ⌘+Enter): thêm đệ tử ở danh sách, lưu ở màn thêm/sửa.
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' || !(e.ctrlKey || e.metaKey) || e.repeat) return;
+    if (view.name === 'edit') { e.preventDefault(); saveEdit(); }
+    else if (view.name === 'roster') { e.preventDefault(); hideToast(); go({ name: 'edit', id: null }); }
   });
 
   T.onChange(() => { if (view.name === 'theme') render(); });
