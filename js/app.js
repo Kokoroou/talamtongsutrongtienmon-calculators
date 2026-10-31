@@ -84,7 +84,7 @@
             ${cells(src.levels)}</article>
           <button class="btn ghost-danger split-retire" data-act="retire" data-id="${src.id}">${I('door', 16)}Trục xuất, không truyền</button>
         </div>
-        <div class="flow" aria-hidden="true">${I('up', 18)}</div>
+        <div class="flow" aria-hidden="true">${I('up', 16)}</div>
         <div class="split-list">${cards ? `<div class="grid">${cards}</div>` : `<div class="empty">${I('people', 42)}<p>Chưa có đệ tử khác để nhận công</p></div>`}</div>
       </div></main>`;
   }
@@ -134,7 +134,7 @@
     const doneCount = list.filter((e) => e.done).length;
     const body = list.length
       ? '<div class="grid">' + list.map((e) => `<article class="card${e.done ? ' done' : ''}"><div class="head">${ident(e.name, e.total)}
-          <button class="check${e.done ? ' on' : ''}" data-act="done" data-id="${e.id}" aria-pressed="${e.done}" aria-label="Đã trục xuất ${esc(e.name)} trong game">${e.done ? I('check', 20) : ''}</button></div>
+          <button class="check${e.done ? ' on' : ''}" data-act="done" data-id="${e.id}" aria-pressed="${e.done}" aria-label="Đã trục xuất ${esc(e.name)} trong game">${e.done ? I('check', 16) : ''}</button></div>
         </article>`).join('') + '</div>'
       : `<div class="empty">${I('door', 42)}<p>Chưa có ai chờ trục xuất</p></div>`;
     return `<header class="top"><h1>Chờ trục xuất</h1><span class="count">${doneCount}/${list.length}</span><div class="grow"></div>${undoBtn()}</header>
@@ -234,7 +234,7 @@
     app.classList.toggle('sub', !ROOT_VIEWS.includes(view.name)); // màn con: ẩn thanh dưới trên điện thoại
     if (view.name === 'theme') T.preloadFonts();
     app.innerHTML = html + tabs(view.name) +
-      (toast ? `<div class="toast" role="status">${I('check', 20)}<span>${toast}</span><button data-act="undo">${I('undo', 16)}Hoàn tác</button></div>` : '');
+      (toast ? `<div class="toast" role="status">${I('check', 16)}<span>${toast}</span><button data-act="undo">${I('undo', 16)}Hoàn tác</button></div>` : '');
   }
 
   function saveEdit() {
