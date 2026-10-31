@@ -24,6 +24,9 @@
     gem: '<path d="M6.500 4h11l4 6L12 21 2.500 10z"/><path d="M2.500 10h19M9 4l-1.500 6L12 21l4.500-11L15 4"/>',
     people: '<circle cx="9" cy="8" r="3.300"/><path d="M2.500 20c0-3.800 2.900-6 6.500-6s6.500 2.200 6.500 6"/><path d="M16 5a3.200 3.200 0 0 1 0 6.200M18 14.300c2 .8 3.500 2.600 3.500 5.700"/>',
     door: '<path d="M5 21V4h9v17"/><path d="M3 21h18"/><path d="M17 9l3 3-3 3M11.500 12H20"/>',
+    download: '<path d="M12 4v11M7 10.500l5 5 5-5M5 20h14"/>',
+    upload: '<path d="M12 16V5M7 9.500l5-5 5 5M5 20h14"/>',
+    data: '<ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v6c0 1.700 3.100 3 7 3s7-1.300 7-3V6M5 12v6c0 1.700 3.100 3 7 3s7-1.300 7-3v-6"/>',
     scroll: '<path d="M6 4h12v13a3 3 0 0 1-3 3H6a3 3 0 0 0 3-3V7"/><path d="M6 4a3 3 0 0 0-3 3h6"/><path d="M12 9h3.500M12 12.500h3.500"/>',
   };
   const SKILL_ICONS = ['sprout', 'coin', 'anvil', 'heart', 'cauldron', 'talisman', 'formation', 'orb'];

@@ -87,3 +87,21 @@ test('sanitize chịu được dữ liệu hỏng', () => {
   assert.equal(s.disciples.length, 1);
   assert.equal(s.disciples[0].levels.length, 8);
 });
+
+test('exportJson/importJson: xuất rồi nhập lại giữ nguyên dữ liệu và hoàn tác được', () => {
+  const src = L.retire(base(), 'a');
+  const text = L.exportJson(src, new Date('2026-01-01T00:00:00Z'));
+  assert.equal(JSON.parse(text).exportedAt, '2026-01-01T00:00:00.000Z');
+  assert.equal('history' in JSON.parse(text), false);
+  const r = L.importJson(L.emptyData(), text);
+  assert.equal(r.ok, true);
+  assert.deepEqual(r.data.disciples, src.disciples);
+  assert.deepEqual(r.data.expelled, src.expelled);
+  assert.deepEqual(L.undo(r.data).disciples, []);
+});
+
+test('importJson từ chối file sai', () => {
+  assert.equal(L.importJson(base(), 'không phải json').ok, false);
+  assert.equal(L.importJson(base(), '{"disciples":1}').ok, false);
+  assert.equal(L.importJson(base(), 'null').ok, false);
+});

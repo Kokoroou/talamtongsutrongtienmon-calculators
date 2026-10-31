@@ -153,3 +153,6 @@ h1,h2{font-family:var(--font-display);margin:0;font-weight:700;letter-spacing:.0
 .head .go{box-shadow:0 2px 0 #8f3510,0 4px 8px var(--shadow)}
 .head .gain{font-size:18px;flex:none}
 .cell{padding:4px 7px;gap:5px}
+
+.note{margin:0 0 4px;color:var(--mute)}
+.msg{min-height:1.4em;font-weight:600}
