@@ -95,19 +95,46 @@
         name: String(disciple.name).trim(),
         total: Math.max(0, Math.floor(Number(disciple.total)) || 0),
         levels: SKILLS.map((_, i) => clampLevel(disciple.levels[i])),
-        role: cleanRole(disciple.role),
+        role: '',
       };
-      // Chỉ có một Chưởng môn: người cũ bị hạ xuống đệ tử và mất phần cộng.
-      if (clean.role === 'leader') {
-        d.disciples.forEach((x) => {
-          if (x.id !== clean.id && x.role === 'leader') { x.total = totalAfterRole(x.total, 'leader', ''); x.role = ''; }
-        });
-      }
       const idx = d.disciples.findIndex((x) => x.id === clean.id);
-      if (idx >= 0) d.disciples[idx] = clean;
+      if (idx >= 0) { clean.role = d.disciples[idx].role || ''; d.disciples[idx] = clean; }
       else d.disciples.push(clean);
       return d;
     });
+  }
+
+  /** Đổi chức vụ một đệ tử và tự điều chỉnh tổng giá trị. `role` rỗng = bãi nhiệm. */
+  function setRole(d, id, role) {
+    const x = d.disciples.find((y) => y.id === id);
+    if (!x) return;
+    const to = cleanRole(role);
+    x.total = totalAfterRole(x.total, x.role, to);
+    x.role = to;
+  }
+
+  /**
+   * Bổ nhiệm `id` vào chức vụ `role`. Nếu ô đang có người (`replaceId`) thì người đó bị bãi nhiệm.
+   * Chưởng môn luôn chỉ có một người; Chưởng lão tối đa MAX_ELDERS.
+   */
+  function assignRole(data, id, role, replaceId) {
+    const target = cleanRole(role);
+    if (!target || !data.disciples.some((x) => x.id === id)) return data;
+    const holders = (r) => data.disciples.filter((x) => x.role === r && x.id !== id && x.id !== replaceId);
+    if (target === 'elder' && holders('elder').length >= MAX_ELDERS) return data;
+    return withHistory(data, (d) => {
+      if (replaceId && replaceId !== id) setRole(d, replaceId, '');
+      if (target === 'leader') d.disciples.filter((x) => x.role === 'leader' && x.id !== id).forEach((x) => setRole(d, x.id, ''));
+      setRole(d, id, target);
+      return d;
+    });
+  }
+
+  /** Bãi nhiệm: về đệ tử thường, trừ phần cộng của chức vụ. */
+  function unassignRole(data, id) {
+    const x = data.disciples.find((y) => y.id === id);
+    if (!x || !x.role) return data;
+    return withHistory(data, (d) => { setRole(d, id, ''); return d; });
   }
 
   function remove(data, id) {
@@ -174,5 +201,5 @@
     return { ok: true, data: next, disciples: clean.disciples.length, expelled: clean.expelled.length };
   }
 
-  return { exportJson, importJson, SKILLS, MAX_LEVEL, ROLES, MAX_ELDERS, roleBonus, totalAfterRole, emptyData, newId, clampLevel, gain, rank, sortedByTotal, transfer, retire, undo, upsert, remove, toggleDone, clearExpelled, sanitize };
+  return { exportJson, importJson, SKILLS, MAX_LEVEL, ROLES, MAX_ELDERS, roleBonus, totalAfterRole, assignRole, unassignRole, emptyData, newId, clampLevel, gain, rank, sortedByTotal, transfer, retire, undo, upsert, remove, toggleDone, clearExpelled, sanitize };
 });

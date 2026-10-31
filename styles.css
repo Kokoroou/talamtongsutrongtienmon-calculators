@@ -173,7 +173,7 @@ h1,h2,h3{font-family:var(--font-display);margin:0;font-weight:700;letter-spacing
 .lift .fab{bottom:calc(150px + env(safe-area-inset-bottom,0px))}
 
 /* Thanh điều hướng: dưới (điện thoại) / cột bên (máy tính bảng, máy tính) */
-.tabs{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:720px;z-index:6;display:grid;grid-template-columns:repeat(3,1fr);
+.tabs{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:720px;z-index:6;display:grid;grid-template-columns:repeat(4,1fr);
   background:var(--nav-bg);color:var(--nav-fg);border-top:var(--nav-bd);padding-bottom:env(safe-area-inset-bottom,0px);box-shadow:var(--nav-sh)}
 .tabs .brand{display:none}
 .tabs button{position:relative;display:flex;flex-direction:column;align-items:center;gap:2px;border:0;background:transparent;color:inherit;opacity:.72;padding:var(--s2) var(--s1) var(--s1);font-size:var(--t0);font-weight:600;cursor:pointer;min-height:calc(var(--s5) + var(--s3))}
@@ -312,3 +312,6 @@ h1,h2,h3{font-family:var(--font-display);margin:0;font-weight:700;letter-spacing
 .role.leader{background:var(--btn-p-bg);color:var(--on-seal);border-color:transparent}
 .hint{display:block;margin-top:var(--s1);opacity:.7;font-size:var(--t0)}
 .seg{flex-wrap:wrap}
+.slot-name{font-family:var(--font-display);font-weight:700;font-size:var(--t1);display:flex;align-items:center;gap:var(--s2);flex:1}
+.bonus{font-size:var(--t0);font-weight:800;padding:0 var(--s2);border-radius:999px;background:var(--btn-p-bg);color:var(--on-seal)}
+.empty-slot{opacity:.8;border-style:dashed}

@@ -42,14 +42,14 @@
     `<button class="ibtn" data-act="${act}" aria-label="${label}" title="${label}" ${extra || ''}>${I(icon, 26)}</button>`;
   const undoBtn = () => iconBtn('undo', 'undo', 'Hoàn tác', data.history.length ? '' : 'disabled');
 
-  const ROOT_VIEWS = ['roster', 'expelled', 'theme'];
+  const ROOT_VIEWS = ['roster', 'roles', 'expelled', 'theme'];
   /** Thanh điều hướng: dưới cùng trên điện thoại, cột bên trên màn rộng. Thẻ đang mở sáng lên cả khi ở màn con. */
   function tabs(active) {
-    const parent = { transfer: 'roster', edit: 'roster', data: 'roster' }[active] || active;
+    const parent = { transfer: 'roster', edit: 'roster', data: 'roster', 'role-pick': 'roles' }[active] || active;
     const t = (key, icon, label, n) =>
       `<button data-act="tab-${key}" class="${parent === key ? 'on' : ''}" ${parent === key ? 'aria-current="page"' : ''} aria-label="${label}">${I(icon, 26)}<span>${label}</span><em>${n === undefined ? '' : n}</em></button>`;
     return `<nav class="tabs" aria-label="Điều hướng"><div class="brand" aria-hidden="true">${I('scroll', 26)}<span>Sổ Truyền Công</span></div>
-      ${t('roster', 'people', 'Đệ tử', data.disciples.length)}${t('expelled', 'door', 'Chờ trục xuất', data.expelled.length)}${t('theme', 'palette', 'Giao diện')}</nav>`;
+      ${t('roster', 'people', 'Đệ tử', data.disciples.length)}${t('roles', 'crown', 'Chức vụ', data.disciples.filter((d) => d.role).length)}${t('expelled', 'door', 'Chờ trục xuất', data.expelled.length)}${t('theme', 'palette', 'Giao diện')}</nav>`;
   }
 
   function rosterView() {
@@ -89,6 +89,48 @@
       </div></main>`;
   }
 
+  /** Năm vị trí: Chưởng môn và các Chưởng lão, xếp theo thứ tự bổ nhiệm trong danh sách. */
+  function roleSlots() {
+    const leader = data.disciples.find((d) => d.role === 'leader') || null;
+    const elders = data.disciples.filter((d) => d.role === 'elder');
+    return [{ role: 'leader', who: leader }]
+      .concat(Array.from({ length: L.MAX_ELDERS }, (_, i) => ({ role: 'elder', who: elders[i] || null })));
+  }
+
+  function rolesView() {
+    const slots = roleSlots();
+    const sum = slots.reduce((n, s) => n + (s.who ? L.roleBonus(s.role) : 0), 0);
+    const cards = slots.map((s, i) => {
+      const bonus = `<span class="bonus">+${L.roleBonus(s.role)}</span>`;
+      const title = `<span class="slot-name">${L.ROLES[s.role].name}${s.role === 'elder' ? ' ' + i : ''}${bonus}</span>`;
+      if (!s.who) {
+        return `<article class="card slot empty-slot"><div class="head">${title}
+          <button class="btn small" data-act="slot" data-slot="${i}">${I('plus', 16)}Bổ nhiệm</button></div></article>`;
+      }
+      return `<article class="card slot"><div class="head">${title}</div>
+        <div class="head"><button class="pick" data-act="slot" data-slot="${i}" aria-label="Đổi người giữ chức ${L.ROLES[s.role].name}">${ident(s.who.name, s.who.total)}</button>
+          ${iconBtn('unrole', 'minus', 'Bãi nhiệm ' + esc(s.who.name), `data-id="${s.who.id}"`)}</div></article>`;
+    }).join('');
+    return `<header class="top"><h1>Chức vụ</h1><span class="count">+${sum}</span><div class="grow"></div>${undoBtn()}</header>
+      <main class="main narrow"><p class="note">Chưởng môn +30, mỗi Chưởng lão +10 tổng giá trị. Bổ nhiệm hoặc bãi nhiệm sẽ tự cộng/trừ vào tổng giá trị đệ tử.</p>
+        <div class="grid">${cards}</div></main>`;
+  }
+
+  function rolePickView() {
+    const slot = roleSlots()[view.slot];
+    if (!slot) return rolesView();
+    const cands = L.sortedByTotal(data.disciples.filter((d) => !slot.who || d.id !== slot.who.id));
+    const label = L.ROLES[slot.role].name + (slot.role === 'elder' ? ' ' + view.slot : '');
+    const cards = cands.map((d) => {
+      const after = L.totalAfterRole(d.total, d.role, slot.role);
+      return `<article class="card" data-act="assign" data-id="${d.id}"><div class="head">
+        <button class="pick" data-act="assign" data-id="${d.id}" aria-label="Bổ nhiệm ${esc(d.name)} làm ${label}">${ident(d.name, d.total, d.role)}</button>
+        <span class="gain${after === d.total ? ' zero' : ''}" aria-label="Tổng giá trị sau bổ nhiệm ${after}">${I('arrow', 16)}${after}</span></div></article>`;
+    }).join('');
+    return `<header class="top">${iconBtn('tab-roles', 'back', 'Quay lại')}<h2>Bổ nhiệm ${label}</h2><div class="grow"></div></header>
+      <main class="main narrow">${cards ? `<div class="grid">${cards}</div>` : `<div class="empty">${I('people', 42)}<p>Chưa có đệ tử để bổ nhiệm</p></div>`}</main>`;
+  }
+
   function expelledView() {
     const list = data.expelled;
     const doneCount = list.filter((e) => e.done).length;
@@ -105,9 +147,7 @@
 
   function editView() {
     const d = view.id ? data.disciples.find((x) => x.id === view.id) : null;
-    const cur = d || { name: '', total: '', levels: L.SKILLS.map(() => 0), role: '' };
-    const role = cur.role || '';
-    const roles = Object.keys(L.ROLES).map((k) => `<button type="button" role="radio" aria-checked="${role === k}" data-act="role" data-v="${k}">${L.ROLES[k].name}${L.ROLES[k].bonus ? ` +${L.ROLES[k].bonus}` : ''}</button>`).join('');
+    const cur = d || { name: '', total: '', levels: L.SKILLS.map(() => 0) };
     const lv = L.SKILLS.map((s, i) => `<div class="fld skill"><label for="lv${i}">${I(window.Icons.SKILL_ICONS[i], 16)}<span>${s}</span></label>
       <div class="step"><button type="button" data-act="step" data-i="${i}" data-d="-1" aria-label="Giảm ${s}">${I('minus', 16)}</button>
       <input id="lv${i}" type="number" inputmode="numeric" min="0" max="${L.MAX_LEVEL}" value="${cur.levels[i]}">
@@ -119,9 +159,6 @@
           <div class="fld"><label for="f-name">Tên</label><input id="f-name" type="text" autocomplete="off" value="${esc(cur.name)}" placeholder="Tề Nhận Lộ"></div>
           <div class="fld"><label for="f-total">${I('gem', 16)}<span>Tổng giá trị</span></label><input id="f-total" type="number" inputmode="numeric" min="0" value="${cur.total}" placeholder="182"></div>
         </div>
-        <div class="fld"><label id="h-role">Chức vụ</label>
-          <div class="seg" id="roles" role="radiogroup" aria-labelledby="h-role" data-role="${role}">${roles}</div>
-          <small class="hint">Đổi chức vụ sẽ tự cộng/trừ tổng giá trị (Chưởng môn +30, Chưởng lão +10).</small></div>
         <div class="grid2 skills">${lv}</div>
         <div class="err" id="err" role="alert"></div>
         ${d ? `<button class="btn ghost-danger" id="del" data-act="delete" data-id="${d.id}">${I('trash', 16)}<span>Xóa đệ tử</span></button>` : ''}
@@ -194,7 +231,7 @@
   }
 
   function render() {
-    const html = { roster: rosterView, transfer: transferView, expelled: expelledView, edit: editView, data: dataView, theme: themeView }[view.name]();
+    const html = { roster: rosterView, transfer: transferView, roles: rolesView, 'role-pick': rolePickView, expelled: expelledView, edit: editView, data: dataView, theme: themeView }[view.name]();
     app.classList.toggle('lift', !!toast);
     app.classList.toggle('sub', !ROOT_VIEWS.includes(view.name)); // màn con: ẩn thanh dưới trên điện thoại
     if (view.name === 'theme') T.preloadFonts();
@@ -209,11 +246,7 @@
     if (!name) { err.textContent = 'Nhập tên đệ tử.'; return; }
     if (totalRaw === '' || Number(totalRaw) < 0) { err.textContent = 'Nhập tổng giá trị (số từ 0 trở lên).'; return; }
     const levels = L.SKILLS.map((_, i) => document.getElementById('lv' + i).value);
-    const role = document.getElementById('roles').dataset.role;
-    if (role === 'elder' && data.disciples.filter((x) => x.role === 'elder' && x.id !== view.id).length >= L.MAX_ELDERS) {
-      err.textContent = `Chỉ có tối đa ${L.MAX_ELDERS} Chưởng lão.`; return;
-    }
-    setData(L.upsert(data, { id: view.id, name, total: totalRaw, levels, role }));
+    setData(L.upsert(data, { id: view.id, name, total: totalRaw, levels }));
     hideToast();
     go({ name: 'roster' });
   }
@@ -239,6 +272,18 @@
         document.getElementById('import-file').click();
         break;
       }
+      case 'tab-roles': go({ name: 'roles' }); break;
+      case 'slot': go({ name: 'role-pick', slot: Number(t.dataset.slot) }); break;
+      case 'assign': {
+        const slot = roleSlots()[view.slot];
+        if (!slot) break;
+        const next = L.assignRole(data, t.dataset.id, slot.role, slot.who && slot.who.id);
+        if (next === data) break;
+        setData(next);
+        go({ name: 'roles' });
+        break;
+      }
+      case 'unrole': setData(L.unassignRole(data, t.dataset.id)); render(); break;
       case 'tab-expelled': go({ name: 'expelled' }); break;
       case 'tab-theme': go({ name: 'theme' }); break;
       case 'theme': {
@@ -254,16 +299,6 @@
       case 'step': {
         const input = document.getElementById('lv' + t.dataset.i);
         input.value = L.clampLevel(Number(input.value) + Number(t.dataset.d));
-        break;
-      }
-      case 'role': {
-        const box = document.getElementById('roles');
-        const next = t.dataset.v;
-        const totalEl = document.getElementById('f-total');
-        if (next === box.dataset.role) break;
-        if (totalEl.value !== '') totalEl.value = L.totalAfterRole(totalEl.value, box.dataset.role, next);
-        box.dataset.role = next;
-        box.querySelectorAll('button').forEach((b) => b.setAttribute('aria-checked', String(b === t)));
         break;
       }
       case 'save': saveEdit(); break;
@@ -300,7 +335,7 @@
         if (!data.history.length) break;
         setData(L.undo(data));
         hideToast();
-        if (view.name === 'transfer' || view.name === 'edit') view = { name: 'roster' };
+        if (['transfer', 'edit', 'role-pick'].includes(view.name)) view = { name: 'roster' };
         render();
         break;
     }
