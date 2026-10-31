@@ -6,6 +6,19 @@
   const SKILLS = ['Bồi Thực', 'Thương Đạo', 'Luyện Khí', 'Nuôi Dưỡng', 'Đan Đạo', 'Phù Lục', 'Trận pháp', 'Tụ Linh'];
   const MAX_LEVEL = 100; // game chưa rõ trần cấp, tạm đặt 100
   const HISTORY_LIMIT = 50;
+  // Chức vụ cộng thêm vào tổng giá trị (tổng giá trị hiển thị trong game đã gồm phần này).
+  const ROLES = {
+    '': { name: 'Đệ tử', bonus: 0 },
+    leader: { name: 'Chưởng môn', bonus: 30 },
+    elder: { name: 'Chưởng lão', bonus: 10 },
+  };
+  const MAX_ELDERS = 4;
+  const cleanRole = (r) => (Object.prototype.hasOwnProperty.call(ROLES, r) ? r : '');
+  const roleBonus = (r) => ROLES[cleanRole(r)].bonus;
+  /** Tổng giá trị sau khi đổi chức vụ từ `from` sang `to`. */
+  function totalAfterRole(total, from, to) {
+    return Math.max(0, (Math.floor(Number(total)) || 0) - roleBonus(from) + roleBonus(to));
+  }
 
   const clone = (x) => JSON.parse(JSON.stringify(x));
   const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
@@ -82,12 +95,46 @@
         name: String(disciple.name).trim(),
         total: Math.max(0, Math.floor(Number(disciple.total)) || 0),
         levels: SKILLS.map((_, i) => clampLevel(disciple.levels[i])),
+        role: '',
       };
       const idx = d.disciples.findIndex((x) => x.id === clean.id);
-      if (idx >= 0) d.disciples[idx] = clean;
+      if (idx >= 0) { clean.role = d.disciples[idx].role || ''; d.disciples[idx] = clean; }
       else d.disciples.push(clean);
       return d;
     });
+  }
+
+  /** Đổi chức vụ một đệ tử và tự điều chỉnh tổng giá trị. `role` rỗng = bãi nhiệm. */
+  function setRole(d, id, role) {
+    const x = d.disciples.find((y) => y.id === id);
+    if (!x) return;
+    const to = cleanRole(role);
+    x.total = totalAfterRole(x.total, x.role, to);
+    x.role = to;
+  }
+
+  /**
+   * Bổ nhiệm `id` vào chức vụ `role`. Nếu ô đang có người (`replaceId`) thì người đó bị bãi nhiệm.
+   * Chưởng môn luôn chỉ có một người; Chưởng lão tối đa MAX_ELDERS.
+   */
+  function assignRole(data, id, role, replaceId) {
+    const target = cleanRole(role);
+    if (!target || !data.disciples.some((x) => x.id === id)) return data;
+    const holders = (r) => data.disciples.filter((x) => x.role === r && x.id !== id && x.id !== replaceId);
+    if (target === 'elder' && holders('elder').length >= MAX_ELDERS) return data;
+    return withHistory(data, (d) => {
+      if (replaceId && replaceId !== id) setRole(d, replaceId, '');
+      if (target === 'leader') d.disciples.filter((x) => x.role === 'leader' && x.id !== id).forEach((x) => setRole(d, x.id, ''));
+      setRole(d, id, target);
+      return d;
+    });
+  }
+
+  /** Bãi nhiệm: về đệ tử thường, trừ phần cộng của chức vụ. */
+  function unassignRole(data, id) {
+    const x = data.disciples.find((y) => y.id === id);
+    if (!x || !x.role) return data;
+    return withHistory(data, (d) => { setRole(d, id, ''); return d; });
   }
 
   function remove(data, id) {
@@ -120,6 +167,7 @@
         disciples: raw.disciples.filter(ok).map((d) => ({
           id: d.id, name: d.name, total: Math.max(0, Math.floor(Number(d.total)) || 0),
           levels: SKILLS.map((_, i) => clampLevel(d.levels && d.levels[i])),
+          role: cleanRole(d.role),
         })),
         expelled: raw.expelled.filter(ok).map((d) => ({
           id: d.id, name: d.name, total: Math.max(0, Math.floor(Number(d.total)) || 0), done: !!d.done,
@@ -153,5 +201,5 @@
     return { ok: true, data: next, disciples: clean.disciples.length, expelled: clean.expelled.length };
   }
 
-  return { exportJson, importJson, SKILLS, MAX_LEVEL, emptyData, newId, clampLevel, gain, rank, sortedByTotal, transfer, retire, undo, upsert, remove, toggleDone, clearExpelled, sanitize };
+  return { exportJson, importJson, SKILLS, MAX_LEVEL, ROLES, MAX_ELDERS, roleBonus, totalAfterRole, assignRole, unassignRole, emptyData, newId, clampLevel, gain, rank, sortedByTotal, transfer, retire, undo, upsert, remove, toggleDone, clearExpelled, sanitize };
 });

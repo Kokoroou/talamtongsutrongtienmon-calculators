@@ -36,26 +36,27 @@
   }
   const gem = (n) => `<span class="total" title="Tổng giá trị" aria-label="Tổng giá trị ${n}">${I('gem', 16)}${n}</span>`;
 
-  const ident = (name, total) => `<span class="ident"><span class="name">${esc(name)}</span>${gem(total)}</span>`;
+  const roleTag = (role) => (role ? `<span class="role ${role}">${L.ROLES[role].name}</span>` : '');
+  const ident = (name, total, role) => `<span class="ident"><span class="name">${esc(name)}</span>${roleTag(role)}${gem(total)}</span>`;
   const iconBtn = (act, icon, label, extra) =>
     `<button class="ibtn" data-act="${act}" aria-label="${label}" title="${label}" ${extra || ''}>${I(icon, 26)}</button>`;
   const undoBtn = () => iconBtn('undo', 'undo', 'Hoàn tác', data.history.length ? '' : 'disabled');
 
-  const ROOT_VIEWS = ['roster', 'expelled', 'theme'];
+  const ROOT_VIEWS = ['roster', 'roles', 'expelled', 'theme'];
   /** Thanh điều hướng: dưới cùng trên điện thoại, cột bên trên màn rộng. Thẻ đang mở sáng lên cả khi ở màn con. */
   function tabs(active) {
-    const parent = { transfer: 'roster', edit: 'roster', data: 'roster' }[active] || active;
+    const parent = { transfer: 'roster', edit: 'roster', data: 'roster', 'role-pick': 'roles' }[active] || active;
     const t = (key, icon, label, n) =>
       `<button data-act="tab-${key}" class="${parent === key ? 'on' : ''}" ${parent === key ? 'aria-current="page"' : ''} aria-label="${label}">${I(icon, 26)}<span>${label}</span><em>${n === undefined ? '' : n}</em></button>`;
     return `<nav class="tabs" aria-label="Điều hướng"><div class="brand" aria-hidden="true">${I('scroll', 26)}<span>Sổ Truyền Công</span></div>
-      ${t('roster', 'people', 'Đệ tử', data.disciples.length)}${t('expelled', 'door', 'Chờ trục xuất', data.expelled.length)}${t('theme', 'palette', 'Giao diện')}</nav>`;
+      ${t('roster', 'people', 'Đệ tử', data.disciples.length)}${t('roles', 'crown', 'Chức vụ', data.disciples.filter((d) => d.role).length)}${t('expelled', 'door', 'Chờ trục xuất', data.expelled.length)}${t('theme', 'palette', 'Giao diện')}</nav>`;
   }
 
   function rosterView() {
     const list = L.sortedByTotal(data.disciples);
     const body = list.length
       ? '<div class="grid">' + list.map((d) => `<article class="card" data-act="pick" data-id="${d.id}">
-          <div class="head"><button class="pick" data-act="pick" data-id="${d.id}" aria-label="Chọn ${esc(d.name)} để trục xuất">${ident(d.name, d.total)}</button>
+          <div class="head"><button class="pick" data-act="pick" data-id="${d.id}" aria-label="Chọn ${esc(d.name)} để trục xuất">${ident(d.name, d.total, d.role)}</button>
             ${iconBtn('edit', 'edit', 'Sửa ' + esc(d.name), `data-id="${d.id}"`)}</div>
           ${cells(d.levels)}</article>`).join('') + '</div>'
       : `<div class="empty">${I('scroll', 42)}<p>Thêm đệ tử đầu tiên</p><button class="btn primary" data-act="add">${I('plus', 16)}Thêm</button></div>`;
@@ -70,7 +71,7 @@
     const ranking = L.rank(src, data.disciples);
     const cards = ranking.map((r, i) => `<article class="card cand${i === 0 ? ' best' : ''}">
         ${i === 0 ? `<span class="crown" title="Nhiều cấp nhất" aria-label="Lựa chọn tốt nhất">${I('crown', 16)}</span>` : ''}
-        <div class="head">${ident(r.d.name, r.d.total)}
+        <div class="head">${ident(r.d.name, r.d.total, r.d.role)}
           <span class="gain${r.gain ? '' : ' zero'}" aria-label="Tăng ${r.gain} cấp">${I('up', 16)}${r.gain}</span>
           <button class="go" data-act="transfer" data-rec="${r.d.id}" aria-label="Truyền công cho ${esc(r.d.name)}" title="Truyền công">${I('arrow', 26)}</button></div>
         ${cells(r.d.levels, src.levels)}
@@ -78,7 +79,7 @@
     return `<header class="top">${iconBtn('back', 'back', 'Quay lại')}<h2>Truyền công</h2><div class="grow"></div></header>
       <main class="main"><div class="split">
         <div class="split-side">
-          <article class="card src"><div class="head">${ident(src.name, src.total)}
+          <article class="card src"><div class="head">${ident(src.name, src.total, src.role)}
             <span class="outbadge" title="Sẽ trục xuất" aria-label="Sẽ trục xuất">${I('door', 26)}</span></div>
             ${cells(src.levels)}</article>
           <button class="btn ghost-danger split-retire" data-act="retire" data-id="${src.id}">${I('door', 16)}Trục xuất, không truyền</button>
@@ -86,6 +87,48 @@
         <div class="flow" aria-hidden="true">${I('up', 18)}</div>
         <div class="split-list">${cards ? `<div class="grid">${cards}</div>` : `<div class="empty">${I('people', 42)}<p>Chưa có đệ tử khác để nhận công</p></div>`}</div>
       </div></main>`;
+  }
+
+  /** Năm vị trí: Chưởng môn và các Chưởng lão, xếp theo thứ tự bổ nhiệm trong danh sách. */
+  function roleSlots() {
+    const leader = data.disciples.find((d) => d.role === 'leader') || null;
+    const elders = data.disciples.filter((d) => d.role === 'elder');
+    return [{ role: 'leader', who: leader }]
+      .concat(Array.from({ length: L.MAX_ELDERS }, (_, i) => ({ role: 'elder', who: elders[i] || null })));
+  }
+
+  function rolesView() {
+    const slots = roleSlots();
+    const sum = slots.reduce((n, s) => n + (s.who ? L.roleBonus(s.role) : 0), 0);
+    const cards = slots.map((s, i) => {
+      const bonus = `<span class="bonus">+${L.roleBonus(s.role)}</span>`;
+      const title = `<span class="slot-name">${L.ROLES[s.role].name}${s.role === 'elder' ? ' ' + i : ''}${bonus}</span>`;
+      if (!s.who) {
+        return `<article class="card slot empty-slot"><div class="head">${title}
+          <button class="btn small" data-act="slot" data-slot="${i}">${I('plus', 16)}Bổ nhiệm</button></div></article>`;
+      }
+      return `<article class="card slot"><div class="head">${title}</div>
+        <div class="head"><button class="pick" data-act="slot" data-slot="${i}" aria-label="Đổi người giữ chức ${L.ROLES[s.role].name}">${ident(s.who.name, s.who.total)}</button>
+          ${iconBtn('unrole', 'minus', 'Bãi nhiệm ' + esc(s.who.name), `data-id="${s.who.id}"`)}</div></article>`;
+    }).join('');
+    return `<header class="top"><h1>Chức vụ</h1><span class="count">+${sum}</span><div class="grow"></div>${undoBtn()}</header>
+      <main class="main narrow"><p class="note">Chưởng môn +30, mỗi Chưởng lão +10 tổng giá trị. Bổ nhiệm hoặc bãi nhiệm sẽ tự cộng/trừ vào tổng giá trị đệ tử.</p>
+        <div class="grid">${cards}</div></main>`;
+  }
+
+  function rolePickView() {
+    const slot = roleSlots()[view.slot];
+    if (!slot) return rolesView();
+    const cands = L.sortedByTotal(data.disciples.filter((d) => !slot.who || d.id !== slot.who.id));
+    const label = L.ROLES[slot.role].name + (slot.role === 'elder' ? ' ' + view.slot : '');
+    const cards = cands.map((d) => {
+      const after = L.totalAfterRole(d.total, d.role, slot.role);
+      return `<article class="card" data-act="assign" data-id="${d.id}"><div class="head">
+        <button class="pick" data-act="assign" data-id="${d.id}" aria-label="Bổ nhiệm ${esc(d.name)} làm ${label}">${ident(d.name, d.total, d.role)}</button>
+        <span class="gain${after === d.total ? ' zero' : ''}" aria-label="Tổng giá trị sau bổ nhiệm ${after}">${I('arrow', 16)}${after}</span></div></article>`;
+    }).join('');
+    return `<header class="top">${iconBtn('tab-roles', 'back', 'Quay lại')}<h2>Bổ nhiệm ${label}</h2><div class="grow"></div></header>
+      <main class="main narrow">${cards ? `<div class="grid">${cards}</div>` : `<div class="empty">${I('people', 42)}<p>Chưa có đệ tử để bổ nhiệm</p></div>`}</main>`;
   }
 
   function expelledView() {
@@ -188,7 +231,7 @@
   }
 
   function render() {
-    const html = { roster: rosterView, transfer: transferView, expelled: expelledView, edit: editView, data: dataView, theme: themeView }[view.name]();
+    const html = { roster: rosterView, transfer: transferView, roles: rolesView, 'role-pick': rolePickView, expelled: expelledView, edit: editView, data: dataView, theme: themeView }[view.name]();
     app.classList.toggle('lift', !!toast);
     app.classList.toggle('sub', !ROOT_VIEWS.includes(view.name)); // màn con: ẩn thanh dưới trên điện thoại
     if (view.name === 'theme') T.preloadFonts();
@@ -229,6 +272,18 @@
         document.getElementById('import-file').click();
         break;
       }
+      case 'tab-roles': go({ name: 'roles' }); break;
+      case 'slot': go({ name: 'role-pick', slot: Number(t.dataset.slot) }); break;
+      case 'assign': {
+        const slot = roleSlots()[view.slot];
+        if (!slot) break;
+        const next = L.assignRole(data, t.dataset.id, slot.role, slot.who && slot.who.id);
+        if (next === data) break;
+        setData(next);
+        go({ name: 'roles' });
+        break;
+      }
+      case 'unrole': setData(L.unassignRole(data, t.dataset.id)); render(); break;
       case 'tab-expelled': go({ name: 'expelled' }); break;
       case 'tab-theme': go({ name: 'theme' }); break;
       case 'theme': {
@@ -280,7 +335,7 @@
         if (!data.history.length) break;
         setData(L.undo(data));
         hideToast();
-        if (view.name === 'transfer' || view.name === 'edit') view = { name: 'roster' };
+        if (['transfer', 'edit', 'role-pick'].includes(view.name)) view = { name: 'roster' };
         render();
         break;
     }
