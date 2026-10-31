@@ -1,5 +1,5 @@
 {
-  "name": "talamtongsutrongtienmon-calculators",
+  "name": "tongsu-calc",
   "private": true,
   "description": "Công cụ tính toán cho game Ta làm tông sư trong tiên môn",
   "scripts": {
