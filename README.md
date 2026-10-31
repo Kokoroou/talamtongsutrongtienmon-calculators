@@ -14,9 +14,11 @@ Chọn đệ tử cần trục xuất, xem nên truyền công cho ai để tăn
 - Dữ liệu lưu trong trình duyệt (localStorage). Nút "Sao lưu" ở màn hình Đệ tử để xuất/nhập file JSON (chuyển thiết bị, sao lưu). Cấp tối đa tạm đặt 100 (`MAX_LEVEL` trong `js/logic.js`).
 
 ### Giao diện đa nền tảng
-- Responsive: điện thoại (thanh điều hướng dưới), máy tính bảng (cột icon bên trái, lưới 2 cột), máy tính (thanh bên có chữ, lưới nhiều cột, màn truyền công chia hai cột).
-- Tab **Giao diện** cho chọn lại: chế độ sáng/tối/tự động, 6 bảng màu, 6 font (đều hỗ trợ tiếng Việt), 4 phong cách (Giấy da, Tối giản, Kính mờ, Khối đậm). Lựa chọn lưu trong trình duyệt (`js/theme.js`), áp dụng ngay.
-- Thêm bảng màu/font/phong cách: sửa `PALETTES`/`FONTS`/`STYLES` trong `js/theme.js` (phong cách thêm khối token tương ứng trong `styles.css`). `npm test` kiểm tra độ tương phản WCAG AA của mọi bảng màu.
+- Responsive: điện thoại (thanh điều hướng dưới), máy tính bảng (cột icon bên trái, lưới 2 cột), máy tính (thanh bên có chữ, lưới nhiều cột, màn truyền công chia hai cột 1 : φ). Tràn hết chiều ngang, không có lề thừa.
+- Điện thoại bật "Trang web cho máy tính" vẫn ra bố cục điện thoại (tự phóng lại, xem `zoomFor` trong `js/theme.js`). Nếu không nhận đúng, vào tab Giao diện → Bố cục → "Điện thoại".
+- Tab **Giao diện**: chế độ sáng/tối/tự động, 2 bảng màu (Sương núi, Mực đá), 2 font (Cổ điển, Hiện đại), 2 phong cách (Giấy da, Tối giản). Lưu trong trình duyệt.
+- Kích thước theo tỉ lệ vàng, ghi ở đầu `styles.css`: khoảng cách 6·10·16·26·42·68, cỡ chữ 13·16·20·26, bo góc 6·10·16.
+- `npm test` kiểm tra độ tương phản WCAG AA của mọi bảng màu.
 
 ### Triển khai
 GitHub Pages tự động deploy khi push lên `main` (`.github/workflows/pages.yml`). Cần bật Settings → Pages → Source: **GitHub Actions**.
