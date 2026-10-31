@@ -35,6 +35,7 @@
   }
   const gem = (n) => `<span class="total" title="Tổng giá trị" aria-label="Tổng giá trị ${n}">${I('gem', 14)}${n}</span>`;
 
+  const ident = (name, total) => `<span class="ident"><span class="name">${esc(name)}</span>${gem(total)}</span>`;
   const iconBtn = (act, icon, label, extra) =>
     `<button class="ibtn" data-act="${act}" aria-label="${label}" title="${label}" ${extra || ''}>${I(icon, 20)}</button>`;
   const undoBtn = () => iconBtn('undo', 'undo', 'Hoàn tác', data.history.length ? '' : 'disabled');
@@ -48,10 +49,10 @@
   function rosterView() {
     const list = L.sortedByTotal(data.disciples);
     const body = list.length
-      ? list.map((d) => `<article class="card"><button class="pick" data-act="pick" data-id="${d.id}" aria-label="Chọn ${esc(d.name)} để trục xuất">
-            <span class="row"><span class="name">${esc(d.name)}</span>${gem(d.total)}</span>
-            ${cells(d.levels)}
-          </button>${iconBtn('edit', 'edit', 'Sửa ' + esc(d.name), `data-id="${d.id}"`)}</article>`).join('')
+      ? list.map((d) => `<article class="card" data-act="pick" data-id="${d.id}">
+          <div class="head"><button class="pick" data-act="pick" data-id="${d.id}" aria-label="Chọn ${esc(d.name)} để trục xuất">${ident(d.name, d.total)}</button>
+            ${iconBtn('edit', 'edit', 'Sửa ' + esc(d.name), `data-id="${d.id}"`)}</div>
+          ${cells(d.levels)}</article>`).join('')
       : `<div class="empty">${I('scroll', 44)}<p>Thêm đệ tử đầu tiên</p><button class="btn primary" data-act="add">${I('plus', 18)}Thêm</button></div>`;
     return `<header class="top"><h1>Đệ tử</h1><div class="grow"></div>${undoBtn()}</header>
       <main class="main">${body}</main>
@@ -64,21 +65,16 @@
     const ranking = L.rank(src, data.disciples);
     const cards = ranking.map((r, i) => `<article class="card cand${i === 0 ? ' best' : ''}">
         ${i === 0 ? `<span class="crown" title="Nhiều cấp nhất" aria-label="Lựa chọn tốt nhất">${I('crown', 16)}</span>` : ''}
-        <div class="cand-body">
-          <span class="row"><span class="name">${esc(r.d.name)}</span>${gem(r.d.total)}</span>
-          ${cells(r.d.levels, src.levels)}
-        </div>
-        <div class="cand-act">
+        <div class="head">${ident(r.d.name, r.d.total)}
           <span class="gain${r.gain ? '' : ' zero'}" aria-label="Tăng ${r.gain} cấp">${I('up', 14)}${r.gain}</span>
-          <button class="go" data-act="transfer" data-rec="${r.d.id}" aria-label="Truyền công cho ${esc(r.d.name)}" title="Truyền công">${I('arrow', 22)}</button>
-        </div>
+          <button class="go" data-act="transfer" data-rec="${r.d.id}" aria-label="Truyền công cho ${esc(r.d.name)}" title="Truyền công">${I('arrow', 22)}</button></div>
+        ${cells(r.d.levels, src.levels)}
       </article>`).join('');
     return `<header class="top">${iconBtn('back', 'back', 'Quay lại')}<h2>Truyền công</h2><div class="grow"></div></header>
       <main class="main">
-        <article class="card src"><div class="cand-body">
-          <span class="row"><span class="name">${esc(src.name)}</span>${gem(src.total)}</span>
-          ${cells(src.levels)}</div>
-          <span class="outbadge" title="Sẽ trục xuất" aria-label="Sẽ trục xuất">${I('door', 22)}</span></article>
+        <article class="card src"><div class="head">${ident(src.name, src.total)}
+          <span class="outbadge" title="Sẽ trục xuất" aria-label="Sẽ trục xuất">${I('door', 22)}</span></div>
+          ${cells(src.levels)}</article>
         <div class="flow" aria-hidden="true">${I('up', 18)}</div>
         ${cards || `<div class="empty">${I('people', 44)}<p>Chưa có đệ tử khác để nhận công</p></div>`}
         <button class="btn ghost-danger" data-act="retire" data-id="${src.id}">${I('door', 18)}Trục xuất, không truyền</button>
@@ -89,9 +85,8 @@
     const list = data.expelled;
     const doneCount = list.filter((e) => e.done).length;
     const body = list.length
-      ? list.map((e) => `<article class="card${e.done ? ' done' : ''}"><div class="cand-body">
-          <span class="name">${esc(e.name)}</span>${gem(e.total)}</div>
-          <button class="check${e.done ? ' on' : ''}" data-act="done" data-id="${e.id}" aria-pressed="${e.done}" aria-label="Đã trục xuất ${esc(e.name)} trong game">${e.done ? I('check', 20) : ''}</button>
+      ? list.map((e) => `<article class="card${e.done ? ' done' : ''}"><div class="head">${ident(e.name, e.total)}
+          <button class="check${e.done ? ' on' : ''}" data-act="done" data-id="${e.id}" aria-pressed="${e.done}" aria-label="Đã trục xuất ${esc(e.name)} trong game">${e.done ? I('check', 20) : ''}</button></div>
         </article>`).join('')
       : `<div class="empty">${I('door', 44)}<p>Chưa có ai chờ trục xuất</p></div>`;
     return `<header class="top"><h1>Chờ trục xuất</h1><span class="count">${doneCount}/${list.length}</span><div class="grow"></div>${undoBtn()}</header>

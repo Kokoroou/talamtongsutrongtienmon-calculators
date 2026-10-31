@@ -54,7 +54,7 @@ h1,h2{font-family:var(--font-display);margin:0;font-weight:700;letter-spacing:.0
 :focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 
 /* Thẻ giấy da */
-.card{position:relative;display:flex;align-items:center;gap:10px;min-width:0;padding:12px;border-radius:16px;
+.card{position:relative;display:flex;flex-direction:column;gap:10px;min-width:0;padding:12px;border-radius:16px;
   background:linear-gradient(180deg,var(--parch),var(--parch-2));border:1px solid var(--edge);
   box-shadow:inset 0 0 0 3px var(--parch),inset 0 0 0 4px var(--edge-soft),0 6px 14px var(--shadow)}
 .card .pick{all:unset;display:flex;flex-direction:column;gap:10px;flex:1;min-width:0;cursor:pointer}
@@ -141,4 +141,15 @@ h1,h2{font-family:var(--font-display);margin:0;font-weight:700;letter-spacing:.0
 @keyframes pulse{50%{transform:scale(1.03)}}
 @media (prefers-reduced-motion:no-preference){.toast{animation:up .18s ease-out}@keyframes up{from{opacity:0;transform:translate(-50%,8px)}}}
 @media (prefers-reduced-motion:reduce){.btn.armed{animation:none}}
-.cand .cells{grid-template-columns:1fr}
+
+/* Dòng tên: tên + tổng ở bên trái, nút hành động cùng hàng ở bên phải */
+.head{display:flex;align-items:center;gap:8px;min-width:0}
+.ident{display:flex;flex-direction:column;gap:0;flex:1;min-width:0;text-align:left}
+.head .pick{all:unset;display:flex;flex:1;min-width:0;cursor:pointer}
+.head .pick:focus-visible{outline:2px solid var(--gold);outline-offset:3px;border-radius:8px}
+.card[data-act=pick]{cursor:pointer}
+.head .ibtn,.head .go,.head .check,.head .outbadge{width:44px;height:44px;border-radius:12px}
+.head .outbadge{border-radius:50%}
+.head .go{box-shadow:0 2px 0 #8f3510,0 4px 8px var(--shadow)}
+.head .gain{font-size:18px;flex:none}
+.cell{padding:4px 7px;gap:5px}
