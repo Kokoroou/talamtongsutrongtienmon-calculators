@@ -13,6 +13,11 @@ Chọn đệ tử cần trục xuất, xem nên truyền công cho ai để tăn
 - Hoàn tác nhiều bước, sửa tay đệ tử, danh sách "Đã truyền hết" để trục xuất xong rồi mới xóa.
 - Dữ liệu lưu trong trình duyệt (localStorage). Nút "Sao lưu" ở màn hình Đệ tử để xuất/nhập file JSON (chuyển thiết bị, sao lưu). Cấp tối đa tạm đặt 100 (`MAX_LEVEL` trong `js/logic.js`).
 
+### Giao diện đa nền tảng
+- Responsive: điện thoại (thanh điều hướng dưới), máy tính bảng (cột icon bên trái, lưới 2 cột), máy tính (thanh bên có chữ, lưới nhiều cột, màn truyền công chia hai cột).
+- Tab **Giao diện** cho chọn lại: chế độ sáng/tối/tự động, 6 bảng màu, 6 font (đều hỗ trợ tiếng Việt), 4 phong cách (Giấy da, Tối giản, Kính mờ, Khối đậm). Lựa chọn lưu trong trình duyệt (`js/theme.js`), áp dụng ngay.
+- Thêm bảng màu/font/phong cách: sửa `PALETTES`/`FONTS`/`STYLES` trong `js/theme.js` (phong cách thêm khối token tương ứng trong `styles.css`). `npm test` kiểm tra độ tương phản WCAG AA của mọi bảng màu.
+
 ### Triển khai
 GitHub Pages tự động deploy khi push lên `main` (`.github/workflows/pages.yml`). Cần bật Settings → Pages → Source: **GitHub Actions**.
 
