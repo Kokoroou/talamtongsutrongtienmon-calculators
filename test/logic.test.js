@@ -108,8 +108,8 @@ test('importJson từ chối file sai', () => {
 
 test('chức vụ: totalAfterRole cộng/trừ đúng phần thưởng', () => {
   assert.equal(L.totalAfterRole(100, '', 'leader'), 130);
-  assert.equal(L.totalAfterRole(130, 'leader', 'elder'), 110);
-  assert.equal(L.totalAfterRole(110, 'elder', ''), 100);
+  assert.equal(L.totalAfterRole(130, 'leader', 'elder1'), 110);
+  assert.equal(L.totalAfterRole(110, 'elder1', ''), 100);
   assert.equal(L.totalAfterRole(5, 'leader', ''), 0);
 });
 
@@ -121,25 +121,35 @@ test('assignRole: chỉ một Chưởng môn, người cũ bị hạ và trừ 3
   assert.deepEqual(d.disciples.map((x) => [x.role, x.total]), [['', 100], ['leader', 130]]);
 });
 
-test('assignRole: đổi Chưởng lão sang Chưởng môn, tối đa 4 Chưởng lão, bãi nhiệm và hoàn tác', () => {
-  let d = { ...L.emptyData(), disciples: ['a', 'b', 'c', 'd', 'e'].map((i) => mk(i, 50, [])) };
-  for (const i of ['a', 'b', 'c', 'd']) d = L.assignRole(d, i, 'elder');
-  assert.equal(L.assignRole(d, 'e', 'elder'), d); // đã đủ 4
+test('assignRole: Trưởng lão giữ nguyên ô, ô mới không đẩy ô cũ', () => {
+  let d = { ...L.emptyData(), disciples: ['a', 'b', 'c'].map((i) => mk(i, 50, [])) };
+  d = L.assignRole(d, 'a', 'elder1');
+  d = L.assignRole(d, 'b', 'elder2');
+  assert.deepEqual(d.disciples.map((x) => x.role), ['elder1', 'elder2', '']);
+  d = L.assignRole(d, 'c', 'elder1'); // thay người ở ô 1, a bị bãi nhiệm
+  assert.deepEqual(d.disciples.map((x) => [x.role, x.total]), [['', 50], ['elder2', 60], ['elder1', 60]]);
+});
+
+test('assignRole: Trưởng lão lên Chưởng môn, bãi nhiệm và hoàn tác', () => {
+  let d = { ...L.emptyData(), disciples: [mk('a', 50, []), mk('b', 50, [])] };
+  d = L.assignRole(d, 'a', 'elder3');
   d = L.assignRole(d, 'a', 'leader');
   assert.equal(d.disciples[0].total, 80); // 50 + 10 - 10 + 30
-  d = L.unassignRole(d, 'a');
-  assert.equal(d.disciples[0].total, 50);
-  assert.equal(L.undo(d).disciples[0].role, 'leader');
+  d = L.assignRole(d, 'b', 'leader');
+  assert.deepEqual(d.disciples.map((x) => [x.role, x.total]), [['', 50], ['leader', 80]]);
+  d = L.unassignRole(d, 'b');
+  assert.equal(d.disciples[1].total, 50);
+  assert.equal(L.undo(d).disciples[1].role, 'leader');
 });
 
 test('upsert giữ nguyên chức vụ khi sửa đệ tử', () => {
   let d = { ...L.emptyData(), disciples: [mk('a', 100, [])] };
-  d = L.assignRole(d, 'a', 'elder');
+  d = L.assignRole(d, 'a', 'elder2');
   d = L.upsert(d, { id: 'a', name: 'A', total: 110, levels: [] });
-  assert.equal(d.disciples[0].role, 'elder');
+  assert.equal(d.disciples[0].role, 'elder2');
 });
 
 test('chức vụ: sanitize giữ chức vụ hợp lệ, bỏ giá trị lạ', () => {
   const r = L.sanitize({ disciples: [{ id: 'a', name: 'A', total: 1, levels: [], role: 'elder' }, { id: 'b', name: 'B', total: 1, levels: [], role: 'x' }], expelled: [] });
-  assert.deepEqual(r.disciples.map((d) => d.role), ['elder', '']);
+  assert.deepEqual(r.disciples.map((d) => d.role), ['elder1', '']);
 });
