@@ -1,5 +1,6 @@
 (function () {
   const L = window.Logic;
+  const T = window.Theme;
   const I = (n, s) => window.Icons.svg(n, s);
   const app = document.getElementById('app');
   let data = window.Store.load();
@@ -40,21 +41,25 @@
     `<button class="ibtn" data-act="${act}" aria-label="${label}" title="${label}" ${extra || ''}>${I(icon, 20)}</button>`;
   const undoBtn = () => iconBtn('undo', 'undo', 'Hoàn tác', data.history.length ? '' : 'disabled');
 
+  const ROOT_VIEWS = ['roster', 'expelled', 'theme'];
+  /** Thanh điều hướng: dưới cùng trên điện thoại, cột bên trên màn rộng. Thẻ đang mở sáng lên cả khi ở màn con. */
   function tabs(active) {
+    const parent = { transfer: 'roster', edit: 'roster', data: 'roster' }[active] || active;
     const t = (key, icon, label, n) =>
-      `<button data-act="tab-${key}" class="${active === key ? 'on' : ''}" aria-label="${label}">${I(icon, 22)}<span>${label}</span><em>${n}</em></button>`;
-    return `<nav class="tabs">${t('roster', 'people', 'Đệ tử', data.disciples.length)}${t('expelled', 'door', 'Chờ trục xuất', data.expelled.length)}</nav>`;
+      `<button data-act="tab-${key}" class="${parent === key ? 'on' : ''}" ${parent === key ? 'aria-current="page"' : ''} aria-label="${label}">${I(icon, 22)}<span>${label}</span><em>${n === undefined ? '' : n}</em></button>`;
+    return `<nav class="tabs" aria-label="Điều hướng"><div class="brand" aria-hidden="true">${I('scroll', 26)}<span>Sổ Truyền Công</span></div>
+      ${t('roster', 'people', 'Đệ tử', data.disciples.length)}${t('expelled', 'door', 'Chờ trục xuất', data.expelled.length)}${t('theme', 'palette', 'Giao diện')}</nav>`;
   }
 
   function rosterView() {
     const list = L.sortedByTotal(data.disciples);
     const body = list.length
-      ? list.map((d) => `<article class="card" data-act="pick" data-id="${d.id}">
+      ? '<div class="grid">' + list.map((d) => `<article class="card" data-act="pick" data-id="${d.id}">
           <div class="head"><button class="pick" data-act="pick" data-id="${d.id}" aria-label="Chọn ${esc(d.name)} để trục xuất">${ident(d.name, d.total)}</button>
             ${iconBtn('edit', 'edit', 'Sửa ' + esc(d.name), `data-id="${d.id}"`)}</div>
-          ${cells(d.levels)}</article>`).join('')
+          ${cells(d.levels)}</article>`).join('') + '</div>'
       : `<div class="empty">${I('scroll', 44)}<p>Thêm đệ tử đầu tiên</p><button class="btn primary" data-act="add">${I('plus', 18)}Thêm</button></div>`;
-    return `<header class="top"><h1>Đệ tử</h1><div class="grow"></div>${iconBtn('data', 'data', 'Sao lưu / khôi phục')}${undoBtn()}</header>
+    return `<header class="top"><h1>Đệ tử</h1><div class="grow"></div>${list.length ? `<button class="btn primary add-wide" data-act="add">${I('plus', 18)}Thêm đệ tử</button>` : ''}${iconBtn('data', 'data', 'Sao lưu / khôi phục')}${undoBtn()}</header>
       <main class="main">${body}</main>
       ${list.length ? `<button class="fab" data-act="add" aria-label="Thêm đệ tử">${I('plus', 26)}</button>` : ''}`;
   }
@@ -71,23 +76,25 @@
         ${cells(r.d.levels, src.levels)}
       </article>`).join('');
     return `<header class="top">${iconBtn('back', 'back', 'Quay lại')}<h2>Truyền công</h2><div class="grow"></div></header>
-      <main class="main">
-        <article class="card src"><div class="head">${ident(src.name, src.total)}
-          <span class="outbadge" title="Sẽ trục xuất" aria-label="Sẽ trục xuất">${I('door', 22)}</span></div>
-          ${cells(src.levels)}</article>
+      <main class="main"><div class="split">
+        <div class="split-side">
+          <article class="card src"><div class="head">${ident(src.name, src.total)}
+            <span class="outbadge" title="Sẽ trục xuất" aria-label="Sẽ trục xuất">${I('door', 22)}</span></div>
+            ${cells(src.levels)}</article>
+          <button class="btn ghost-danger split-retire" data-act="retire" data-id="${src.id}">${I('door', 18)}Trục xuất, không truyền</button>
+        </div>
         <div class="flow" aria-hidden="true">${I('up', 18)}</div>
-        ${cards || `<div class="empty">${I('people', 44)}<p>Chưa có đệ tử khác để nhận công</p></div>`}
-        <button class="btn ghost-danger" data-act="retire" data-id="${src.id}">${I('door', 18)}Trục xuất, không truyền</button>
-      </main>`;
+        <div class="split-list">${cards ? `<div class="grid">${cards}</div>` : `<div class="empty">${I('people', 44)}<p>Chưa có đệ tử khác để nhận công</p></div>`}</div>
+      </div></main>`;
   }
 
   function expelledView() {
     const list = data.expelled;
     const doneCount = list.filter((e) => e.done).length;
     const body = list.length
-      ? list.map((e) => `<article class="card${e.done ? ' done' : ''}"><div class="head">${ident(e.name, e.total)}
+      ? '<div class="grid">' + list.map((e) => `<article class="card${e.done ? ' done' : ''}"><div class="head">${ident(e.name, e.total)}
           <button class="check${e.done ? ' on' : ''}" data-act="done" data-id="${e.id}" aria-pressed="${e.done}" aria-label="Đã trục xuất ${esc(e.name)} trong game">${e.done ? I('check', 20) : ''}</button></div>
-        </article>`).join('')
+        </article>`).join('') + '</div>'
       : `<div class="empty">${I('door', 44)}<p>Chưa có ai chờ trục xuất</p></div>`;
     return `<header class="top"><h1>Chờ trục xuất</h1><span class="count">${doneCount}/${list.length}</span><div class="grow"></div>${undoBtn()}</header>
       <main class="main">${body}
@@ -104,25 +111,58 @@
       <button type="button" data-act="step" data-i="${i}" data-d="1" aria-label="Tăng ${s}">${I('plus', 16)}</button></div></div>`).join('');
     return `<header class="top">${iconBtn('back', 'back', 'Hủy')}<h2>${d ? 'Sửa đệ tử' : 'Thêm đệ tử'}</h2><div class="grow"></div>
         <button class="btn primary small" data-act="save">${I('check', 18)}Lưu</button></header>
-      <main class="main">
+      <main class="main narrow"><div class="form">
         <div class="grid2">
           <div class="fld"><label for="f-name">Tên</label><input id="f-name" type="text" autocomplete="off" value="${esc(cur.name)}" placeholder="Tề Nhận Lộ"></div>
           <div class="fld"><label for="f-total">${I('gem', 14)}<span>Tổng giá trị</span></label><input id="f-total" type="number" inputmode="numeric" min="0" value="${cur.total}" placeholder="182"></div>
         </div>
-        <div class="grid2">${lv}</div>
+        <div class="grid2 skills">${lv}</div>
         <div class="err" id="err" role="alert"></div>
         ${d ? `<button class="btn ghost-danger" id="del" data-act="delete" data-id="${d.id}">${I('trash', 18)}<span>Xóa đệ tử</span></button>` : ''}
-      </main>`;
+      </div></main>`;
   }
 
   function dataView() {
     return `<header class="top">${iconBtn('back', 'back', 'Quay lại')}<h2>Sao lưu dữ liệu</h2><div class="grow"></div></header>
-      <main class="main">
+      <main class="main narrow">
         <p class="note">Dữ liệu lưu trong trình duyệt của thiết bị này. Xuất file JSON để sao lưu hoặc chuyển sang thiết bị khác.</p>
         <button class="btn primary" data-act="export">${I('download', 18)}<span>Xuất file JSON</span></button>
         <button class="btn" data-act="import">${I('upload', 18)}<span>Nhập từ file JSON (thay dữ liệu hiện tại)</span></button>
         <input type="file" id="import-file" accept="application/json,.json" hidden>
         <div class="msg" id="data-msg" role="status">${esc(view.msg || '')}</div>
+      </main>`;
+  }
+
+  function themeView() {
+    const cur = T.get();
+    const sch = T.scheme();
+    const radio = (k, v, inner, plain) =>
+      `<button type="button" role="radio" ${plain ? '' : 'class="opt"'} aria-checked="${cur[k] === v}" data-act="theme" data-k="${k}" data-v="${v}">${inner}</button>`;
+    const tick = `<span class="tick" aria-hidden="true">${I('check', 14)}</span>`;
+    const modeIcon = { auto: 'auto', light: 'sun', dark: 'moon' };
+    const modes = T.MODES.map((m) => radio('mode', m.id, `${I(modeIcon[m.id], 18)}${m.name}`, true)).join('');
+    const pals = T.PALETTES.map((p) => {
+      const c = T.colors(p.id, sch);
+      const sw = [c.wood, c.seal, c.gold, c.jade, c.parch].map((x) => `<i style="background:${x}"></i>`).join('');
+      return radio('palette', p.id, `<span class="sw" aria-hidden="true">${sw}</span><b>${p.name}</b><small>${p.note}</small>${tick}`);
+    }).join('');
+    const fonts = T.FONTS.map((f) => radio('font', f.id,
+      `<span class="fsmp" style="font-family:${f.display}">Tề Nhận Lộ</span><span class="fsmp2" style="font-family:${f.body}">Tổng giá trị 182 · Luyện Khí</span><b>${f.name}</b>${tick}`)).join('');
+    const styles = T.STYLES.map((s) => radio('style', s.id,
+      `<span class="pv" data-pv="${s.id}" aria-hidden="true"><span class="pv-top"></span><span class="pv-card"></span></span><b>${s.name}</b><small>${s.note}</small>${tick}`)).join('');
+    return `<header class="top"><h1>Giao diện</h1><div class="grow"></div></header>
+      <main class="main narrow">
+        <section class="set" aria-labelledby="h-mode"><h3 id="h-mode">Chế độ màu</h3>
+          <div class="seg" role="radiogroup" aria-labelledby="h-mode">${modes}</div>
+          <p>“Tự động” theo cài đặt sáng/tối của thiết bị.</p></section>
+        <section class="set" aria-labelledby="h-pal"><h3 id="h-pal">Bảng màu</h3>
+          <div class="opts" role="radiogroup" aria-labelledby="h-pal">${pals}</div></section>
+        <section class="set" aria-labelledby="h-font"><h3 id="h-font">Font chữ</h3>
+          <div class="opts wide" role="radiogroup" aria-labelledby="h-font">${fonts}</div></section>
+        <section class="set" aria-labelledby="h-style"><h3 id="h-style">Phong cách thiết kế</h3>
+          <div class="opts wide" role="radiogroup" aria-labelledby="h-style">${styles}</div></section>
+        <button class="btn" data-act="theme-reset" ${T.isDefault() ? 'disabled' : ''}>${I('undo', 18)}<span>Đặt lại giao diện mặc định</span></button>
+        <button class="btn" data-act="data">${I('data', 18)}<span>Sao lưu / khôi phục dữ liệu</span></button>
       </main>`;
   }
 
@@ -150,10 +190,11 @@
   }
 
   function render() {
-    const html = { roster: rosterView, transfer: transferView, expelled: expelledView, edit: editView, data: dataView }[view.name]();
-    const showTabs = view.name === 'roster' || view.name === 'expelled';
+    const html = { roster: rosterView, transfer: transferView, expelled: expelledView, edit: editView, data: dataView, theme: themeView }[view.name]();
     app.classList.toggle('lift', !!toast);
-    app.innerHTML = html + (showTabs ? tabs(view.name) : '') +
+    app.classList.toggle('sub', !ROOT_VIEWS.includes(view.name)); // màn con: ẩn thanh dưới trên điện thoại
+    if (view.name === 'theme') T.preloadFonts();
+    app.innerHTML = html + tabs(view.name) +
       (toast ? `<div class="toast" role="status">${I('check', 20)}<span>${toast}</span><button data-act="undo">${I('undo', 18)}Hoàn tác</button></div>` : '');
   }
 
@@ -191,6 +232,14 @@
         break;
       }
       case 'tab-expelled': go({ name: 'expelled' }); break;
+      case 'tab-theme': go({ name: 'theme' }); break;
+      case 'theme': {
+        T.set({ [t.dataset.k]: t.dataset.v }); // onChange sẽ vẽ lại màn Giao diện
+        const again = app.querySelector(`[data-act="theme"][data-k="${t.dataset.k}"][data-v="${t.dataset.v}"]`);
+        if (again) again.focus({ preventScroll: true });
+        break;
+      }
+      case 'theme-reset': T.reset(); break;
       case 'add': go({ name: 'edit', id: null }); break;
       case 'edit': go({ name: 'edit', id: t.dataset.id }); break;
       case 'pick': hideToast(); go({ name: 'transfer', id: t.dataset.id }); break;
@@ -243,5 +292,6 @@
     if (e.target.id === 'import-file' && e.target.files[0]) doImport(e.target.files[0]);
   });
 
+  T.onChange(() => { if (view.name === 'theme') render(); });
   render();
 })();
