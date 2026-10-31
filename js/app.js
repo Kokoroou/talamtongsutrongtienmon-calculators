@@ -159,9 +159,6 @@
           <div class="opts" role="radiogroup" aria-labelledby="h-font">${fonts}</div></section>
         <section class="set" aria-labelledby="h-style"><h3 id="h-style">Phong cách</h3>
           <div class="opts" role="radiogroup" aria-labelledby="h-style">${styles}</div></section>
-        <section class="set" aria-labelledby="h-layout"><h3 id="h-layout">Bố cục</h3>
-          <div class="seg" role="radiogroup" aria-labelledby="h-layout">${seg('layout', T.LAYOUTS)}</div>
-          <p>Nếu trên điện thoại chữ bị nhỏ và thưa (do bật “Trang web cho máy tính”), chọn “Điện thoại”.</p></section>
         <button class="btn" data-act="theme-reset" ${T.isDefault() ? 'disabled' : ''}>${I('undo', 16)}<span>Đặt lại mặc định</span></button>
         <button class="btn" data-act="data">${I('data', 16)}<span>Sao lưu / khôi phục dữ liệu</span></button>
       </main>`;
