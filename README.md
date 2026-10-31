@@ -1,5 +1,7 @@
-# talamtongsutrongtienmon-calculators
+# tongsu-calc
 Công cụ hỗ trợ tính toán khi chơi game "Ta làm tông sư trong tiên môn".
+
+Dùng thử: https://kokoroou.github.io/tongsu-calc/
 
 ## Sổ Truyền Công
 Chọn đệ tử cần trục xuất, xem nên truyền công cho ai để tăng được nhiều cấp nhất, bấm truyền, rồi trục xuất cả loạt trong game.
