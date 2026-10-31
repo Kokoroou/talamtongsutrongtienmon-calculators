@@ -131,5 +131,27 @@
     }
   }
 
-  return { SKILLS, MAX_LEVEL, emptyData, newId, clampLevel, gain, rank, sortedByTotal, transfer, retire, undo, upsert, remove, toggleDone, clearExpelled, sanitize };
+  const EXPORT_APP = 'tlts-truyen-cong';
+
+  /** Chuỗi JSON để xuất (không kèm lịch sử hoàn tác). */
+  function exportJson(data, now) {
+    return JSON.stringify({
+      app: EXPORT_APP, version: 1, exportedAt: (now || new Date()).toISOString(),
+      disciples: data.disciples, expelled: data.expelled,
+    }, null, 2);
+  }
+
+  /** Đọc file nhập; thay toàn bộ dữ liệu hiện tại (có thể hoàn tác). */
+  function importJson(data, text) {
+    let raw;
+    try { raw = JSON.parse(text); } catch (e) { return { ok: false, error: 'File không phải JSON hợp lệ.' }; }
+    if (!raw || !Array.isArray(raw.disciples) || !Array.isArray(raw.expelled)) {
+      return { ok: false, error: 'File không đúng định dạng của Sổ Truyền Công.' };
+    }
+    const clean = sanitize({ disciples: raw.disciples, expelled: raw.expelled });
+    const next = withHistory(data, (d) => { d.disciples = clean.disciples; d.expelled = clean.expelled; return d; });
+    return { ok: true, data: next, disciples: clean.disciples.length, expelled: clean.expelled.length };
+  }
+
+  return { exportJson, importJson, SKILLS, MAX_LEVEL, emptyData, newId, clampLevel, gain, rank, sortedByTotal, transfer, retire, undo, upsert, remove, toggleDone, clearExpelled, sanitize };
 });

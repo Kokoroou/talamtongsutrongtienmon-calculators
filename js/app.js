@@ -54,7 +54,7 @@
             ${iconBtn('edit', 'edit', 'Sửa ' + esc(d.name), `data-id="${d.id}"`)}</div>
           ${cells(d.levels)}</article>`).join('')
       : `<div class="empty">${I('scroll', 44)}<p>Thêm đệ tử đầu tiên</p><button class="btn primary" data-act="add">${I('plus', 18)}Thêm</button></div>`;
-    return `<header class="top"><h1>Đệ tử</h1><div class="grow"></div>${undoBtn()}</header>
+    return `<header class="top"><h1>Đệ tử</h1><div class="grow"></div>${iconBtn('data', 'data', 'Sao lưu / khôi phục')}${undoBtn()}</header>
       <main class="main">${body}</main>
       ${list.length ? `<button class="fab" data-act="add" aria-label="Thêm đệ tử">${I('plus', 26)}</button>` : ''}`;
   }
@@ -115,8 +115,42 @@
       </main>`;
   }
 
+  function dataView() {
+    return `<header class="top">${iconBtn('back', 'back', 'Quay lại')}<h2>Sao lưu dữ liệu</h2><div class="grow"></div></header>
+      <main class="main">
+        <p class="note">Dữ liệu lưu trong trình duyệt của thiết bị này. Xuất file JSON để sao lưu hoặc chuyển sang thiết bị khác.</p>
+        <button class="btn primary" data-act="export">${I('download', 18)}<span>Xuất file JSON</span></button>
+        <button class="btn" data-act="import">${I('upload', 18)}<span>Nhập từ file JSON (thay dữ liệu hiện tại)</span></button>
+        <input type="file" id="import-file" accept="application/json,.json" hidden>
+        <div class="msg" id="data-msg" role="status">${esc(view.msg || '')}</div>
+      </main>`;
+  }
+
+  function doExport() {
+    const blob = new Blob([L.exportJson(data)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'so-truyen-cong-' + new Date().toISOString().slice(0, 10) + '.json';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  }
+
+  function doImport(file) {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const r = L.importJson(data, String(reader.result));
+      if (!r.ok) { go({ name: 'data', msg: r.error }); return; }
+      setData(r.data);
+      go({ name: 'data', msg: `Đã nhập ${r.disciples} đệ tử, ${r.expelled} người chờ trục xuất. Có thể hoàn tác ở màn hình Đệ tử.` });
+    };
+    reader.onerror = () => go({ name: 'data', msg: 'Không đọc được file.' });
+    reader.readAsText(file);
+  }
+
   function render() {
-    const html = { roster: rosterView, transfer: transferView, expelled: expelledView, edit: editView }[view.name]();
+    const html = { roster: rosterView, transfer: transferView, expelled: expelledView, edit: editView, data: dataView }[view.name]();
     const showTabs = view.name === 'roster' || view.name === 'expelled';
     app.classList.toggle('lift', !!toast);
     app.innerHTML = html + (showTabs ? tabs(view.name) : '') +
@@ -149,6 +183,13 @@
     if (!t) return;
     switch (t.dataset.act) {
       case 'tab-roster': case 'back': go({ name: 'roster' }); break;
+      case 'data': go({ name: 'data' }); break;
+      case 'export': doExport(); break;
+      case 'import': {
+        if (data.disciples.length + data.expelled.length && !armed(t, 'Bấm lần nữa để thay dữ liệu hiện tại')) break;
+        document.getElementById('import-file').click();
+        break;
+      }
       case 'tab-expelled': go({ name: 'expelled' }); break;
       case 'add': go({ name: 'edit', id: null }); break;
       case 'edit': go({ name: 'edit', id: t.dataset.id }); break;
@@ -196,6 +237,10 @@
         render();
         break;
     }
+  });
+
+  app.addEventListener('change', (e) => {
+    if (e.target.id === 'import-file' && e.target.files[0]) doImport(e.target.files[0]);
   });
 
   render();

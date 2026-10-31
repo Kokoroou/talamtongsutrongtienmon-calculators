@@ -9,7 +9,10 @@ Chọn đệ tử cần trục xuất, xem nên truyền công cho ai để tăn
 - Truyền công: người truyền về cấp 0; người nhận nâng mỗi chuyên môn lên bằng cấp người truyền nếu cao hơn (không cộng dồn).
 - Gợi ý xếp theo số cấp tăng, hòa thì người có tổng giá trị lớn hơn đứng trước.
 - Hoàn tác nhiều bước, sửa tay đệ tử, danh sách "Đã truyền hết" để trục xuất xong rồi mới xóa.
-- Dữ liệu lưu trong trình duyệt (localStorage). Cấp tối đa tạm đặt 100 (`MAX_LEVEL` trong `js/logic.js`).
+- Dữ liệu lưu trong trình duyệt (localStorage). Nút "Sao lưu" ở màn hình Đệ tử để xuất/nhập file JSON (chuyển thiết bị, sao lưu). Cấp tối đa tạm đặt 100 (`MAX_LEVEL` trong `js/logic.js`).
+
+### Triển khai
+GitHub Pages tự động deploy khi push lên `main` (`.github/workflows/pages.yml`). Cần bật Settings → Pages → Source: **GitHub Actions**.
 
 ### Chạy
 Mở `index.html` trong trình duyệt, hoặc `npx serve .`. Không cần build.
