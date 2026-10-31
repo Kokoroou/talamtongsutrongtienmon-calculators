@@ -25,10 +25,31 @@ test('id của bảng màu, font, phong cách không trùng', () => {
   }
 });
 
+test('mỗi mục chỉ giữ 2 lựa chọn tốt nhất', () => {
+  assert.equal(T.PALETTES.length, 2);
+  assert.equal(T.FONTS.length, 2);
+  assert.equal(T.STYLES.length, 2);
+});
+
+test('breakpoints và zoomFor', () => {
+  assert.equal(T.breakpoints(412), '');
+  assert.equal(T.breakpoints(820), 't');
+  assert.equal(T.breakpoints(1000), 't d');
+  assert.equal(T.breakpoints(1440), 't d w');
+  // điện thoại 412px bật "Trang web cho máy tính" (viewport 980) -> phóng ~2.38 để bố cục như điện thoại
+  const z = T.zoomFor({ layout: 'auto', vw: 980, screenW: 412, coarse: true });
+  assert.ok(Math.abs(z - 980 / 412) < 1e-9);
+  assert.equal(T.zoomFor({ layout: 'auto', vw: 412, screenW: 412, coarse: true }), 1); // điện thoại bình thường
+  assert.equal(T.zoomFor({ layout: 'auto', vw: 915, screenW: 915, coarse: true }), 1); // xoay ngang
+  assert.equal(T.zoomFor({ layout: 'auto', vw: 1440, screenW: 1440, coarse: false }), 1); // máy tính
+  assert.equal(T.zoomFor({ layout: 'desktop', vw: 980, screenW: 412, coarse: true }), 1);
+  assert.ok(T.zoomFor({ layout: 'phone', vw: 980, screenW: 980, coarse: false }) > 2);
+});
+
 test('normalize bỏ giá trị lạ, về mặc định', () => {
   assert.deepEqual(T.normalize(null), T.DEFAULTS);
-  assert.deepEqual(T.normalize({ palette: 'không-có', font: 5, mode: 'dark', style: 'khoi-dam' }),
-    { ...T.DEFAULTS, mode: 'dark', style: 'khoi-dam' });
+  assert.deepEqual(T.normalize({ palette: 'không-có', font: 5, mode: 'dark', style: 'kinh-mo', layout: 'desktop' }),
+    { ...T.DEFAULTS, mode: 'dark', layout: 'desktop' });
 });
 
 test('font có URL Google Fonts, trừ font hệ thống', () => {

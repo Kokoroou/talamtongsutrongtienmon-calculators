@@ -24,7 +24,7 @@
     const name = L.SKILLS[i];
     const icon = I(window.Icons.SKILL_ICONS[i], 16);
     if (to !== undefined && to > level) {
-      return `<span class="cell up" aria-label="${name} ${level} lên ${to}">${icon}<span class="sk">${name}</span><span class="lv">${level}${I('arrow', 12)}<b>${to}</b></span></span>`;
+      return `<span class="cell up" aria-label="${name} ${level} lên ${to}">${icon}<span class="sk">${name}</span><span class="lv">${level}${I('arrow', 10)}<b>${to}</b></span></span>`;
     }
     return `<span class="cell${to !== undefined ? ' same' : ''}" aria-label="${name} ${level}">${icon}<span class="sk">${name}</span><span class="lv"><b>${level}</b></span></span>`;
   }
@@ -34,11 +34,11 @@
     const out = levels.map((v, i) => (ref[i] > 0 ? cell(i, v, target && target[i]) : '')).join('');
     return `<span class="cells">${out || '<span class="none">Chưa có chuyên môn</span>'}</span>`;
   }
-  const gem = (n) => `<span class="total" title="Tổng giá trị" aria-label="Tổng giá trị ${n}">${I('gem', 14)}${n}</span>`;
+  const gem = (n) => `<span class="total" title="Tổng giá trị" aria-label="Tổng giá trị ${n}">${I('gem', 16)}${n}</span>`;
 
   const ident = (name, total) => `<span class="ident"><span class="name">${esc(name)}</span>${gem(total)}</span>`;
   const iconBtn = (act, icon, label, extra) =>
-    `<button class="ibtn" data-act="${act}" aria-label="${label}" title="${label}" ${extra || ''}>${I(icon, 20)}</button>`;
+    `<button class="ibtn" data-act="${act}" aria-label="${label}" title="${label}" ${extra || ''}>${I(icon, 26)}</button>`;
   const undoBtn = () => iconBtn('undo', 'undo', 'Hoàn tác', data.history.length ? '' : 'disabled');
 
   const ROOT_VIEWS = ['roster', 'expelled', 'theme'];
@@ -46,7 +46,7 @@
   function tabs(active) {
     const parent = { transfer: 'roster', edit: 'roster', data: 'roster' }[active] || active;
     const t = (key, icon, label, n) =>
-      `<button data-act="tab-${key}" class="${parent === key ? 'on' : ''}" ${parent === key ? 'aria-current="page"' : ''} aria-label="${label}">${I(icon, 22)}<span>${label}</span><em>${n === undefined ? '' : n}</em></button>`;
+      `<button data-act="tab-${key}" class="${parent === key ? 'on' : ''}" ${parent === key ? 'aria-current="page"' : ''} aria-label="${label}">${I(icon, 26)}<span>${label}</span><em>${n === undefined ? '' : n}</em></button>`;
     return `<nav class="tabs" aria-label="Điều hướng"><div class="brand" aria-hidden="true">${I('scroll', 26)}<span>Sổ Truyền Công</span></div>
       ${t('roster', 'people', 'Đệ tử', data.disciples.length)}${t('expelled', 'door', 'Chờ trục xuất', data.expelled.length)}${t('theme', 'palette', 'Giao diện')}</nav>`;
   }
@@ -58,8 +58,8 @@
           <div class="head"><button class="pick" data-act="pick" data-id="${d.id}" aria-label="Chọn ${esc(d.name)} để trục xuất">${ident(d.name, d.total)}</button>
             ${iconBtn('edit', 'edit', 'Sửa ' + esc(d.name), `data-id="${d.id}"`)}</div>
           ${cells(d.levels)}</article>`).join('') + '</div>'
-      : `<div class="empty">${I('scroll', 44)}<p>Thêm đệ tử đầu tiên</p><button class="btn primary" data-act="add">${I('plus', 18)}Thêm</button></div>`;
-    return `<header class="top"><h1>Đệ tử</h1><div class="grow"></div>${list.length ? `<button class="btn primary add-wide" data-act="add">${I('plus', 18)}Thêm đệ tử</button>` : ''}${iconBtn('data', 'data', 'Sao lưu / khôi phục')}${undoBtn()}</header>
+      : `<div class="empty">${I('scroll', 42)}<p>Thêm đệ tử đầu tiên</p><button class="btn primary" data-act="add">${I('plus', 16)}Thêm</button></div>`;
+    return `<header class="top"><h1>Đệ tử</h1><div class="grow"></div>${list.length ? `<button class="btn primary add-wide" data-act="add">${I('plus', 16)}Thêm đệ tử</button>` : ''}${iconBtn('data', 'data', 'Sao lưu / khôi phục')}${undoBtn()}</header>
       <main class="main">${body}</main>
       ${list.length ? `<button class="fab" data-act="add" aria-label="Thêm đệ tử">${I('plus', 26)}</button>` : ''}`;
   }
@@ -71,20 +71,20 @@
     const cards = ranking.map((r, i) => `<article class="card cand${i === 0 ? ' best' : ''}">
         ${i === 0 ? `<span class="crown" title="Nhiều cấp nhất" aria-label="Lựa chọn tốt nhất">${I('crown', 16)}</span>` : ''}
         <div class="head">${ident(r.d.name, r.d.total)}
-          <span class="gain${r.gain ? '' : ' zero'}" aria-label="Tăng ${r.gain} cấp">${I('up', 14)}${r.gain}</span>
-          <button class="go" data-act="transfer" data-rec="${r.d.id}" aria-label="Truyền công cho ${esc(r.d.name)}" title="Truyền công">${I('arrow', 22)}</button></div>
+          <span class="gain${r.gain ? '' : ' zero'}" aria-label="Tăng ${r.gain} cấp">${I('up', 16)}${r.gain}</span>
+          <button class="go" data-act="transfer" data-rec="${r.d.id}" aria-label="Truyền công cho ${esc(r.d.name)}" title="Truyền công">${I('arrow', 26)}</button></div>
         ${cells(r.d.levels, src.levels)}
       </article>`).join('');
     return `<header class="top">${iconBtn('back', 'back', 'Quay lại')}<h2>Truyền công</h2><div class="grow"></div></header>
       <main class="main"><div class="split">
         <div class="split-side">
           <article class="card src"><div class="head">${ident(src.name, src.total)}
-            <span class="outbadge" title="Sẽ trục xuất" aria-label="Sẽ trục xuất">${I('door', 22)}</span></div>
+            <span class="outbadge" title="Sẽ trục xuất" aria-label="Sẽ trục xuất">${I('door', 26)}</span></div>
             ${cells(src.levels)}</article>
-          <button class="btn ghost-danger split-retire" data-act="retire" data-id="${src.id}">${I('door', 18)}Trục xuất, không truyền</button>
+          <button class="btn ghost-danger split-retire" data-act="retire" data-id="${src.id}">${I('door', 16)}Trục xuất, không truyền</button>
         </div>
         <div class="flow" aria-hidden="true">${I('up', 18)}</div>
-        <div class="split-list">${cards ? `<div class="grid">${cards}</div>` : `<div class="empty">${I('people', 44)}<p>Chưa có đệ tử khác để nhận công</p></div>`}</div>
+        <div class="split-list">${cards ? `<div class="grid">${cards}</div>` : `<div class="empty">${I('people', 42)}<p>Chưa có đệ tử khác để nhận công</p></div>`}</div>
       </div></main>`;
   }
 
@@ -95,30 +95,30 @@
       ? '<div class="grid">' + list.map((e) => `<article class="card${e.done ? ' done' : ''}"><div class="head">${ident(e.name, e.total)}
           <button class="check${e.done ? ' on' : ''}" data-act="done" data-id="${e.id}" aria-pressed="${e.done}" aria-label="Đã trục xuất ${esc(e.name)} trong game">${e.done ? I('check', 20) : ''}</button></div>
         </article>`).join('') + '</div>'
-      : `<div class="empty">${I('door', 44)}<p>Chưa có ai chờ trục xuất</p></div>`;
+      : `<div class="empty">${I('door', 42)}<p>Chưa có ai chờ trục xuất</p></div>`;
     return `<header class="top"><h1>Chờ trục xuất</h1><span class="count">${doneCount}/${list.length}</span><div class="grow"></div>${undoBtn()}</header>
       <main class="main">${body}
-        ${list.length ? `<button class="btn danger" data-act="clear">${I('trash', 18)}<span>Xóa danh sách</span></button>` : ''}
+        ${list.length ? `<button class="btn danger" data-act="clear">${I('trash', 16)}<span>Xóa danh sách</span></button>` : ''}
       </main>`;
   }
 
   function editView() {
     const d = view.id ? data.disciples.find((x) => x.id === view.id) : null;
     const cur = d || { name: '', total: '', levels: L.SKILLS.map(() => 0) };
-    const lv = L.SKILLS.map((s, i) => `<div class="fld skill"><label for="lv${i}">${I(window.Icons.SKILL_ICONS[i], 18)}<span>${s}</span></label>
+    const lv = L.SKILLS.map((s, i) => `<div class="fld skill"><label for="lv${i}">${I(window.Icons.SKILL_ICONS[i], 16)}<span>${s}</span></label>
       <div class="step"><button type="button" data-act="step" data-i="${i}" data-d="-1" aria-label="Giảm ${s}">${I('minus', 16)}</button>
       <input id="lv${i}" type="number" inputmode="numeric" min="0" max="${L.MAX_LEVEL}" value="${cur.levels[i]}">
       <button type="button" data-act="step" data-i="${i}" data-d="1" aria-label="Tăng ${s}">${I('plus', 16)}</button></div></div>`).join('');
     return `<header class="top">${iconBtn('back', 'back', 'Hủy')}<h2>${d ? 'Sửa đệ tử' : 'Thêm đệ tử'}</h2><div class="grow"></div>
-        <button class="btn primary small" data-act="save">${I('check', 18)}Lưu</button></header>
+        <button class="btn primary small" data-act="save">${I('check', 16)}Lưu</button></header>
       <main class="main narrow"><div class="form">
         <div class="grid2">
           <div class="fld"><label for="f-name">Tên</label><input id="f-name" type="text" autocomplete="off" value="${esc(cur.name)}" placeholder="Tề Nhận Lộ"></div>
-          <div class="fld"><label for="f-total">${I('gem', 14)}<span>Tổng giá trị</span></label><input id="f-total" type="number" inputmode="numeric" min="0" value="${cur.total}" placeholder="182"></div>
+          <div class="fld"><label for="f-total">${I('gem', 16)}<span>Tổng giá trị</span></label><input id="f-total" type="number" inputmode="numeric" min="0" value="${cur.total}" placeholder="182"></div>
         </div>
         <div class="grid2 skills">${lv}</div>
         <div class="err" id="err" role="alert"></div>
-        ${d ? `<button class="btn ghost-danger" id="del" data-act="delete" data-id="${d.id}">${I('trash', 18)}<span>Xóa đệ tử</span></button>` : ''}
+        ${d ? `<button class="btn ghost-danger" id="del" data-act="delete" data-id="${d.id}">${I('trash', 16)}<span>Xóa đệ tử</span></button>` : ''}
       </div></main>`;
   }
 
@@ -126,8 +126,8 @@
     return `<header class="top">${iconBtn('back', 'back', 'Quay lại')}<h2>Sao lưu dữ liệu</h2><div class="grow"></div></header>
       <main class="main narrow">
         <p class="note">Dữ liệu lưu trong trình duyệt của thiết bị này. Xuất file JSON để sao lưu hoặc chuyển sang thiết bị khác.</p>
-        <button class="btn primary" data-act="export">${I('download', 18)}<span>Xuất file JSON</span></button>
-        <button class="btn" data-act="import">${I('upload', 18)}<span>Nhập từ file JSON (thay dữ liệu hiện tại)</span></button>
+        <button class="btn primary" data-act="export">${I('download', 16)}<span>Xuất file JSON</span></button>
+        <button class="btn" data-act="import">${I('upload', 16)}<span>Nhập từ file JSON (thay dữ liệu hiện tại)</span></button>
         <input type="file" id="import-file" accept="application/json,.json" hidden>
         <div class="msg" id="data-msg" role="status">${esc(view.msg || '')}</div>
       </main>`;
@@ -138,31 +138,32 @@
     const sch = T.scheme();
     const radio = (k, v, inner, plain) =>
       `<button type="button" role="radio" ${plain ? '' : 'class="opt"'} aria-checked="${cur[k] === v}" data-act="theme" data-k="${k}" data-v="${v}">${inner}</button>`;
-    const tick = `<span class="tick" aria-hidden="true">${I('check', 14)}</span>`;
-    const modeIcon = { auto: 'auto', light: 'sun', dark: 'moon' };
-    const modes = T.MODES.map((m) => radio('mode', m.id, `${I(modeIcon[m.id], 18)}${m.name}`, true)).join('');
+    const tick = `<span class="tick" aria-hidden="true">${I('check', 16)}</span>`;
+    const seg = (k, list, icons) => list.map((m) => radio(k, m.id, `${icons ? I(icons[m.id], 16) : ''}${m.name}`, true)).join('');
     const pals = T.PALETTES.map((p) => {
       const c = T.colors(p.id, sch);
       const sw = [c.wood, c.seal, c.gold, c.jade, c.parch].map((x) => `<i style="background:${x}"></i>`).join('');
       return radio('palette', p.id, `<span class="sw" aria-hidden="true">${sw}</span><b>${p.name}</b><small>${p.note}</small>${tick}`);
     }).join('');
     const fonts = T.FONTS.map((f) => radio('font', f.id,
-      `<span class="fsmp" style="font-family:${f.display}">Tề Nhận Lộ</span><span class="fsmp2" style="font-family:${f.body}">Tổng giá trị 182 · Luyện Khí</span><b>${f.name}</b>${tick}`)).join('');
+      `<span class="fsmp" style="font-family:${f.display}">Tề Nhận Lộ</span><span class="fsmp2" style="font-family:${f.body}">Tổng giá trị 182</span><b>${f.name}</b><small>${f.note}</small>${tick}`)).join('');
     const styles = T.STYLES.map((s) => radio('style', s.id,
       `<span class="pv" data-pv="${s.id}" aria-hidden="true"><span class="pv-top"></span><span class="pv-card"></span></span><b>${s.name}</b><small>${s.note}</small>${tick}`)).join('');
     return `<header class="top"><h1>Giao diện</h1><div class="grow"></div></header>
       <main class="main narrow">
         <section class="set" aria-labelledby="h-mode"><h3 id="h-mode">Chế độ màu</h3>
-          <div class="seg" role="radiogroup" aria-labelledby="h-mode">${modes}</div>
-          <p>“Tự động” theo cài đặt sáng/tối của thiết bị.</p></section>
+          <div class="seg" role="radiogroup" aria-labelledby="h-mode">${seg('mode', T.MODES, { auto: 'auto', light: 'sun', dark: 'moon' })}</div></section>
         <section class="set" aria-labelledby="h-pal"><h3 id="h-pal">Bảng màu</h3>
           <div class="opts" role="radiogroup" aria-labelledby="h-pal">${pals}</div></section>
         <section class="set" aria-labelledby="h-font"><h3 id="h-font">Font chữ</h3>
-          <div class="opts wide" role="radiogroup" aria-labelledby="h-font">${fonts}</div></section>
-        <section class="set" aria-labelledby="h-style"><h3 id="h-style">Phong cách thiết kế</h3>
-          <div class="opts wide" role="radiogroup" aria-labelledby="h-style">${styles}</div></section>
-        <button class="btn" data-act="theme-reset" ${T.isDefault() ? 'disabled' : ''}>${I('undo', 18)}<span>Đặt lại giao diện mặc định</span></button>
-        <button class="btn" data-act="data">${I('data', 18)}<span>Sao lưu / khôi phục dữ liệu</span></button>
+          <div class="opts" role="radiogroup" aria-labelledby="h-font">${fonts}</div></section>
+        <section class="set" aria-labelledby="h-style"><h3 id="h-style">Phong cách</h3>
+          <div class="opts" role="radiogroup" aria-labelledby="h-style">${styles}</div></section>
+        <section class="set" aria-labelledby="h-layout"><h3 id="h-layout">Bố cục</h3>
+          <div class="seg" role="radiogroup" aria-labelledby="h-layout">${seg('layout', T.LAYOUTS)}</div>
+          <p>Nếu trên điện thoại chữ bị nhỏ và thưa (do bật “Trang web cho máy tính”), chọn “Điện thoại”.</p></section>
+        <button class="btn" data-act="theme-reset" ${T.isDefault() ? 'disabled' : ''}>${I('undo', 16)}<span>Đặt lại mặc định</span></button>
+        <button class="btn" data-act="data">${I('data', 16)}<span>Sao lưu / khôi phục dữ liệu</span></button>
       </main>`;
   }
 
@@ -195,7 +196,7 @@
     app.classList.toggle('sub', !ROOT_VIEWS.includes(view.name)); // màn con: ẩn thanh dưới trên điện thoại
     if (view.name === 'theme') T.preloadFonts();
     app.innerHTML = html + tabs(view.name) +
-      (toast ? `<div class="toast" role="status">${I('check', 20)}<span>${toast}</span><button data-act="undo">${I('undo', 18)}Hoàn tác</button></div>` : '');
+      (toast ? `<div class="toast" role="status">${I('check', 20)}<span>${toast}</span><button data-act="undo">${I('undo', 16)}Hoàn tác</button></div>` : '');
   }
 
   function saveEdit() {
