@@ -9,7 +9,7 @@
   else root.Theme = factory(root);
 })(typeof self !== 'undefined' ? self : this, function (win) {
   const KEY = 'tlts-theme-v1';
-  const DEFAULTS = { mode: 'auto', palette: 'suong-nui', font: 'co-dien', style: 'giay-da', layout: 'auto' };
+  const DEFAULTS = { mode: 'auto', palette: 'suong-nui', font: 'co-dien', style: 'giay-da' };
 
   // Thứ tự biến cho mỗi bộ màu (20 giá trị).
   const VARS = ['sky-a', 'sky-b', 'parch', 'parch-2', 'edge', 'edge-soft', 'ink', 'mute', 'wood', 'wood-2', 'wood-ink',
@@ -42,14 +42,8 @@
     { id: 'dark', name: 'Tối' },
   ];
 
-  const LAYOUTS = [
-    { id: 'auto', name: 'Tự động' },
-    { id: 'phone', name: 'Điện thoại' },
-    { id: 'desktop', name: 'Máy tính' },
-  ];
-
   const ids = (list) => list.map((x) => x.id);
-  const LISTS = { mode: MODES, palette: PALETTES, font: FONTS, style: STYLES, layout: LAYOUTS };
+  const LISTS = { mode: MODES, palette: PALETTES, font: FONTS, style: STYLES };
 
   /** Giữ lại giá trị hợp lệ, còn lại về mặc định. */
   function normalize(raw) {
@@ -81,18 +75,15 @@
     if (w >= 1100) out.push('w'); // thanh bên có chữ
     return out.join(' ');
   }
-  const PHONE_W = 412; // bề rộng điện thoại chuẩn khi ép chế độ "Điện thoại"
   /**
    * Hệ số phóng để bố cục điện thoại không bị co nhỏ khi trình duyệt bật "Trang web cho máy tính"
    * (viewport 980px nhưng màn hình thật chỉ ~400px). Trả 1 nếu không cần phóng.
    */
-  function zoomFor({ layout, vw, screenW, coarse }) {
-    if (layout === 'desktop') return 1;
-    if (layout === 'phone') return vw > PHONE_W * 1.2 ? vw / PHONE_W : 1;
+  function zoomFor({ vw, screenW, coarse }) {
     return coarse && screenW > 0 && screenW < 600 && vw > screenW * 1.2 ? vw / screenW : 1;
   }
 
-  const api = { DEFAULTS, VARS, PALETTES, FONTS, STYLES, MODES, LAYOUTS, normalize, palette, font, colors, fontUrl, breakpoints, zoomFor };
+  const api = { DEFAULTS, VARS, PALETTES, FONTS, STYLES, MODES, normalize, palette, font, colors, fontUrl, breakpoints, zoomFor };
   if (!win) return api; // chạy trong test (Node): chỉ cần phần dữ liệu
 
   // ---- Phần gắn vào trình duyệt ----
@@ -128,7 +119,7 @@
   function applyLayout() {
     const vw = win.innerWidth; // không đổi khi phóng body
     const coarse = !!(win.matchMedia && win.matchMedia('(pointer: coarse)').matches);
-    zoom = zoomFor({ layout: state.layout, vw, screenW: win.screen ? win.screen.width : 0, coarse });
+    zoom = zoomFor({ vw, screenW: win.screen ? win.screen.width : 0, coarse });
     if (doc.body) doc.body.style.zoom = zoom > 1 ? String(zoom) : '';
     html.style.setProperty('--z', String(zoom));
     html.dataset.bp = breakpoints(vw / zoom);
