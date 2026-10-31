@@ -89,40 +89,38 @@
       </div></main>`;
   }
 
-  /** Năm vị trí: Chưởng môn và các Chưởng lão, xếp theo thứ tự bổ nhiệm trong danh sách. */
-  function roleSlots() {
-    const leader = data.disciples.find((d) => d.role === 'leader') || null;
-    const elders = data.disciples.filter((d) => d.role === 'elder');
-    return [{ role: 'leader', who: leader }]
-      .concat(Array.from({ length: L.MAX_ELDERS }, (_, i) => ({ role: 'elder', who: elders[i] || null })));
+  /** Năm vị trí cố định: Chưởng môn ở trên, bốn Trưởng lão ở hàng dưới. */
+  const SLOT_ROLES = ['leader'].concat(L.ELDER_ROLES);
+  const holder = (role) => data.disciples.find((d) => d.role === role) || null;
+
+  function slotCard(role) {
+    const who = holder(role);
+    const name = L.ROLES[role].name;
+    const title = `<span class="slot-name">${name}<span class="bonus">+${L.roleBonus(role)}</span></span>`;
+    if (!who) {
+      return `<article class="card slot empty-slot"><div class="head">${title}
+        <button class="btn small" data-act="slot" data-role="${role}">${I('plus', 16)}Bổ nhiệm</button></div></article>`;
+    }
+    return `<article class="card slot"><div class="head">${title}</div>
+      <div class="head"><button class="pick" data-act="slot" data-role="${role}" aria-label="Đổi người giữ chức ${name}">${ident(who.name, who.total)}</button>
+        ${iconBtn('unrole', 'minus', 'Bãi nhiệm ' + esc(who.name), `data-id="${who.id}"`)}</div></article>`;
   }
 
   function rolesView() {
-    const slots = roleSlots();
-    const sum = slots.reduce((n, s) => n + (s.who ? L.roleBonus(s.role) : 0), 0);
-    const cards = slots.map((s, i) => {
-      const bonus = `<span class="bonus">+${L.roleBonus(s.role)}</span>`;
-      const title = `<span class="slot-name">${L.ROLES[s.role].name}${s.role === 'elder' ? ' ' + i : ''}${bonus}</span>`;
-      if (!s.who) {
-        return `<article class="card slot empty-slot"><div class="head">${title}
-          <button class="btn small" data-act="slot" data-slot="${i}">${I('plus', 16)}Bổ nhiệm</button></div></article>`;
-      }
-      return `<article class="card slot"><div class="head">${title}</div>
-        <div class="head"><button class="pick" data-act="slot" data-slot="${i}" aria-label="Đổi người giữ chức ${L.ROLES[s.role].name}">${ident(s.who.name, s.who.total)}</button>
-          ${iconBtn('unrole', 'minus', 'Bãi nhiệm ' + esc(s.who.name), `data-id="${s.who.id}"`)}</div></article>`;
-    }).join('');
+    const sum = SLOT_ROLES.reduce((n, r) => n + (holder(r) ? L.roleBonus(r) : 0), 0);
     return `<header class="top"><h1>Chức vụ</h1><span class="count">+${sum}</span><div class="grow"></div>${undoBtn()}</header>
-      <main class="main narrow"><p class="note">Chưởng môn +30, mỗi Chưởng lão +10 tổng giá trị. Bổ nhiệm hoặc bãi nhiệm sẽ tự cộng/trừ vào tổng giá trị đệ tử.</p>
-        <div class="grid">${cards}</div></main>`;
+      <main class="main narrow"><p class="note">Chưởng môn +30, mỗi Trưởng lão +10 tổng giá trị. Bổ nhiệm hoặc bãi nhiệm sẽ tự cộng/trừ vào tổng giá trị đệ tử.</p>
+        <div class="slots-leader">${slotCard('leader')}</div>
+        <div class="grid slots-elders">${L.ELDER_ROLES.map(slotCard).join('')}</div></main>`;
   }
 
   function rolePickView() {
-    const slot = roleSlots()[view.slot];
-    if (!slot) return rolesView();
-    const cands = L.sortedByTotal(data.disciples.filter((d) => !slot.who || d.id !== slot.who.id));
-    const label = L.ROLES[slot.role].name + (slot.role === 'elder' ? ' ' + view.slot : '');
+    const role = view.role;
+    if (!L.ROLES[role] || !role) return rolesView();
+    const cands = L.sortedByTotal(data.disciples.filter((d) => d.role !== role));
+    const label = L.ROLES[role].name;
     const cards = cands.map((d) => {
-      const after = L.totalAfterRole(d.total, d.role, slot.role);
+      const after = L.totalAfterRole(d.total, d.role, role);
       return `<article class="card" data-act="assign" data-id="${d.id}"><div class="head">
         <button class="pick" data-act="assign" data-id="${d.id}" aria-label="Bổ nhiệm ${esc(d.name)} làm ${label}">${ident(d.name, d.total, d.role)}</button>
         <span class="gain${after === d.total ? ' zero' : ''}" aria-label="Tổng giá trị sau bổ nhiệm ${after}">${I('arrow', 16)}${after}</span></div></article>`;
@@ -273,11 +271,9 @@
         break;
       }
       case 'tab-roles': go({ name: 'roles' }); break;
-      case 'slot': go({ name: 'role-pick', slot: Number(t.dataset.slot) }); break;
+      case 'slot': go({ name: 'role-pick', role: t.dataset.role }); break;
       case 'assign': {
-        const slot = roleSlots()[view.slot];
-        if (!slot) break;
-        const next = L.assignRole(data, t.dataset.id, slot.role, slot.who && slot.who.id);
+        const next = L.assignRole(data, t.dataset.id, view.role);
         if (next === data) break;
         setData(next);
         go({ name: 'roles' });

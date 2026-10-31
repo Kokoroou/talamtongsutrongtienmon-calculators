@@ -10,9 +10,12 @@
   const ROLES = {
     '': { name: 'Đệ tử', bonus: 0 },
     leader: { name: 'Chưởng môn', bonus: 30 },
-    elder: { name: 'Chưởng lão', bonus: 10 },
+    elder1: { name: 'Trưởng lão 1', bonus: 10 },
+    elder2: { name: 'Trưởng lão 2', bonus: 10 },
+    elder3: { name: 'Trưởng lão 3', bonus: 10 },
+    elder4: { name: 'Trưởng lão 4', bonus: 10 },
   };
-  const MAX_ELDERS = 4;
+  const ELDER_ROLES = ['elder1', 'elder2', 'elder3', 'elder4']; // mỗi Trưởng lão có ô cố định
   const cleanRole = (r) => (Object.prototype.hasOwnProperty.call(ROLES, r) ? r : '');
   const roleBonus = (r) => ROLES[cleanRole(r)].bonus;
   /** Tổng giá trị sau khi đổi chức vụ từ `from` sang `to`. */
@@ -114,17 +117,14 @@
   }
 
   /**
-   * Bổ nhiệm `id` vào chức vụ `role`. Nếu ô đang có người (`replaceId`) thì người đó bị bãi nhiệm.
-   * Chưởng môn luôn chỉ có một người; Chưởng lão tối đa MAX_ELDERS.
+   * Bổ nhiệm `id` vào ô `role` (leader, elder1..elder4). Người đang giữ ô đó bị bãi nhiệm;
+   * nếu `id` đang giữ ô khác thì ô cũ để trống, các ô còn lại giữ nguyên vị trí.
    */
-  function assignRole(data, id, role, replaceId) {
+  function assignRole(data, id, role) {
     const target = cleanRole(role);
     if (!target || !data.disciples.some((x) => x.id === id)) return data;
-    const holders = (r) => data.disciples.filter((x) => x.role === r && x.id !== id && x.id !== replaceId);
-    if (target === 'elder' && holders('elder').length >= MAX_ELDERS) return data;
     return withHistory(data, (d) => {
-      if (replaceId && replaceId !== id) setRole(d, replaceId, '');
-      if (target === 'leader') d.disciples.filter((x) => x.role === 'leader' && x.id !== id).forEach((x) => setRole(d, x.id, ''));
+      d.disciples.filter((x) => x.role === target && x.id !== id).forEach((x) => setRole(d, x.id, ''));
       setRole(d, id, target);
       return d;
     });
@@ -163,11 +163,13 @@
     try {
       if (!raw || !Array.isArray(raw.disciples) || !Array.isArray(raw.expelled)) return emptyData();
       const ok = (d) => d && typeof d.id === 'string' && typeof d.name === 'string';
+      const free = ELDER_ROLES.filter((r) => !raw.disciples.some((x) => x && x.role === r));
+      const legacy = (r) => (r === 'elder' ? free.shift() || '' : r); // bản cũ chỉ có 'elder'
       return {
         disciples: raw.disciples.filter(ok).map((d) => ({
           id: d.id, name: d.name, total: Math.max(0, Math.floor(Number(d.total)) || 0),
           levels: SKILLS.map((_, i) => clampLevel(d.levels && d.levels[i])),
-          role: cleanRole(d.role),
+          role: cleanRole(legacy(d.role)),
         })),
         expelled: raw.expelled.filter(ok).map((d) => ({
           id: d.id, name: d.name, total: Math.max(0, Math.floor(Number(d.total)) || 0), done: !!d.done,
@@ -201,5 +203,5 @@
     return { ok: true, data: next, disciples: clean.disciples.length, expelled: clean.expelled.length };
   }
 
-  return { exportJson, importJson, SKILLS, MAX_LEVEL, ROLES, MAX_ELDERS, roleBonus, totalAfterRole, assignRole, unassignRole, emptyData, newId, clampLevel, gain, rank, sortedByTotal, transfer, retire, undo, upsert, remove, toggleDone, clearExpelled, sanitize };
+  return { exportJson, importJson, SKILLS, MAX_LEVEL, ROLES, ELDER_ROLES, roleBonus, totalAfterRole, assignRole, unassignRole, emptyData, newId, clampLevel, gain, rank, sortedByTotal, transfer, retire, undo, upsert, remove, toggleDone, clearExpelled, sanitize };
 });
