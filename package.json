@@ -1,0 +1,9 @@
+{
+  "name": "talamtongsutrongtienmon-calculators",
+  "private": true,
+  "description": "Công cụ tính toán cho game Ta làm tông sư trong tiên môn",
+  "scripts": {
+    "test": "node --test \"test/*.test.js\""
+  },
+  "license": "MIT"
+}

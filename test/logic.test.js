@@ -1,0 +1,89 @@
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const L = require('../js/logic.js');
+
+const mk = (id, total, levels) => ({ id, name: id, total, levels });
+// Thứ tự: Bồi Thực, Thương Đạo, Luyện Khí, Nuôi Dưỡng, Đan Đạo, Phù Lục, Trận pháp, Tụ Linh
+const base = () => ({
+  disciples: [
+    mk('te', 182, [2, 0, 0, 0, 6, 1, 1, 0]),         // Tề Nhận Lộ
+    mk('truong', 150, [2, 2, 5, 1, 0, 1, 0, 1]),     // Trương Lương Tài (ảnh trong game)
+    mk('a', 200, [0, 0, 0, 0, 0, 0, 0, 0]),
+  ],
+  expelled: [],
+  history: [],
+});
+
+test('gain khớp ảnh game: Tề Nhận Lộ → Trương Lương Tài là +7', () => {
+  const d = base();
+  assert.equal(L.gain(d.disciples[0], d.disciples[1]), 7);
+});
+
+test('rank: nhiều cấp tăng trước, hòa thì tổng giá trị lớn hơn trước', () => {
+  const src = mk('s', 1, [0, 0, 0, 0, 6, 0, 0, 0]);
+  const list = [mk('x', 100, [0, 0, 0, 0, 0, 0, 0, 0]), mk('y', 300, [0, 0, 0, 0, 0, 0, 0, 0]), mk('z', 500, [0, 0, 0, 0, 5, 0, 0, 0])];
+  const r = L.rank(src, list);
+  assert.deepEqual(r.map((x) => x.d.id), ['y', 'x', 'z']);
+  assert.deepEqual(r.map((x) => x.gain), [6, 6, 1]);
+});
+
+test('rank bỏ qua chính người truyền', () => {
+  const d = base();
+  assert.ok(!L.rank(d.disciples[0], d.disciples).some((x) => x.d.id === 'te'));
+});
+
+test('transfer: người truyền sang danh sách chờ, người nhận lấy cấp cao hơn', () => {
+  const r = L.transfer(base(), 'te', 'truong');
+  assert.equal(r.gain, 7);
+  assert.deepEqual(r.data.disciples.find((x) => x.id === 'truong').levels, [2, 2, 5, 1, 6, 1, 1, 1]);
+  assert.ok(!r.data.disciples.some((x) => x.id === 'te'));
+  assert.equal(r.data.expelled.length, 1);
+  assert.equal(r.data.expelled[0].id, 'te');
+  assert.equal(r.data.history.length, 1);
+});
+
+test('undo khôi phục cả hai bên', () => {
+  const before = base();
+  const after = L.undo(L.transfer(before, 'te', 'truong').data);
+  assert.deepEqual(after.disciples, before.disciples);
+  assert.deepEqual(after.expelled, []);
+  assert.equal(after.history.length, 0);
+});
+
+test('undo nhiều bước', () => {
+  let d = base();
+  d = L.transfer(d, 'te', 'truong').data;
+  d = L.clearExpelled(d);
+  d = L.undo(d);
+  assert.equal(d.expelled.length, 1);
+  d = L.undo(d);
+  assert.equal(d.disciples.length, 3);
+});
+
+test('upsert thêm mới, sửa và giới hạn cấp 0..100', () => {
+  let d = L.upsert(L.emptyData(), { name: ' Mới ', total: '77', levels: [5, -3, 250, 'x', 1, 0, 0, 0] });
+  const n = d.disciples[0];
+  assert.equal(n.name, 'Mới');
+  assert.equal(n.total, 77);
+  assert.deepEqual(n.levels, [5, 0, 100, 0, 1, 0, 0, 0]);
+  d = L.upsert(d, { id: n.id, name: 'Mới', total: 80, levels: n.levels });
+  assert.equal(d.disciples.length, 1);
+  assert.equal(d.disciples[0].total, 80);
+});
+
+test('toggleDone, retire và clearExpelled', () => {
+  let d = L.retire(base(), 'a');
+  assert.equal(d.expelled[0].id, 'a');
+  d = L.toggleDone(d, 'a');
+  assert.equal(d.expelled[0].done, true);
+  d = L.clearExpelled(d);
+  assert.equal(d.expelled.length, 0);
+});
+
+test('sanitize chịu được dữ liệu hỏng', () => {
+  assert.deepEqual(L.sanitize(null), L.emptyData());
+  assert.deepEqual(L.sanitize({ disciples: 5 }), L.emptyData());
+  const s = L.sanitize({ disciples: [{ id: 'a', name: 'A', total: '9', levels: [1] }, { bad: 1 }], expelled: [] });
+  assert.equal(s.disciples.length, 1);
+  assert.equal(s.disciples[0].levels.length, 8);
+});
