@@ -307,3 +307,8 @@ h1,h2,h3{font-family:var(--font-display);margin:0;font-weight:700;letter-spacing
   :root[data-bp~=t] .tabs button{min-height:var(--s5)}
   :root[data-bp~=t] .tabs .brand{height:var(--s4);margin-bottom:2px}
 }
+
+.role{align-self:flex-start;margin:2px 0;padding:0 var(--s2);border-radius:999px;border:1px solid var(--gold,currentColor);font-size:var(--t0);font-weight:700;line-height:1.5}
+.role.leader{background:var(--btn-p-bg);color:var(--on-seal);border-color:transparent}
+.hint{display:block;margin-top:var(--s1);opacity:.7;font-size:var(--t0)}
+.seg{flex-wrap:wrap}

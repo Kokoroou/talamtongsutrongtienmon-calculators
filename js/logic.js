@@ -6,6 +6,19 @@
   const SKILLS = ['Bồi Thực', 'Thương Đạo', 'Luyện Khí', 'Nuôi Dưỡng', 'Đan Đạo', 'Phù Lục', 'Trận pháp', 'Tụ Linh'];
   const MAX_LEVEL = 100; // game chưa rõ trần cấp, tạm đặt 100
   const HISTORY_LIMIT = 50;
+  // Chức vụ cộng thêm vào tổng giá trị (tổng giá trị hiển thị trong game đã gồm phần này).
+  const ROLES = {
+    '': { name: 'Đệ tử', bonus: 0 },
+    leader: { name: 'Chưởng môn', bonus: 30 },
+    elder: { name: 'Chưởng lão', bonus: 10 },
+  };
+  const MAX_ELDERS = 4;
+  const cleanRole = (r) => (Object.prototype.hasOwnProperty.call(ROLES, r) ? r : '');
+  const roleBonus = (r) => ROLES[cleanRole(r)].bonus;
+  /** Tổng giá trị sau khi đổi chức vụ từ `from` sang `to`. */
+  function totalAfterRole(total, from, to) {
+    return Math.max(0, (Math.floor(Number(total)) || 0) - roleBonus(from) + roleBonus(to));
+  }
 
   const clone = (x) => JSON.parse(JSON.stringify(x));
   const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
@@ -82,7 +95,14 @@
         name: String(disciple.name).trim(),
         total: Math.max(0, Math.floor(Number(disciple.total)) || 0),
         levels: SKILLS.map((_, i) => clampLevel(disciple.levels[i])),
+        role: cleanRole(disciple.role),
       };
+      // Chỉ có một Chưởng môn: người cũ bị hạ xuống đệ tử và mất phần cộng.
+      if (clean.role === 'leader') {
+        d.disciples.forEach((x) => {
+          if (x.id !== clean.id && x.role === 'leader') { x.total = totalAfterRole(x.total, 'leader', ''); x.role = ''; }
+        });
+      }
       const idx = d.disciples.findIndex((x) => x.id === clean.id);
       if (idx >= 0) d.disciples[idx] = clean;
       else d.disciples.push(clean);
@@ -120,6 +140,7 @@
         disciples: raw.disciples.filter(ok).map((d) => ({
           id: d.id, name: d.name, total: Math.max(0, Math.floor(Number(d.total)) || 0),
           levels: SKILLS.map((_, i) => clampLevel(d.levels && d.levels[i])),
+          role: cleanRole(d.role),
         })),
         expelled: raw.expelled.filter(ok).map((d) => ({
           id: d.id, name: d.name, total: Math.max(0, Math.floor(Number(d.total)) || 0), done: !!d.done,
@@ -153,5 +174,5 @@
     return { ok: true, data: next, disciples: clean.disciples.length, expelled: clean.expelled.length };
   }
 
-  return { exportJson, importJson, SKILLS, MAX_LEVEL, emptyData, newId, clampLevel, gain, rank, sortedByTotal, transfer, retire, undo, upsert, remove, toggleDone, clearExpelled, sanitize };
+  return { exportJson, importJson, SKILLS, MAX_LEVEL, ROLES, MAX_ELDERS, roleBonus, totalAfterRole, emptyData, newId, clampLevel, gain, rank, sortedByTotal, transfer, retire, undo, upsert, remove, toggleDone, clearExpelled, sanitize };
 });

@@ -2,7 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const L = require('../js/logic.js');
 
-const mk = (id, total, levels) => ({ id, name: id, total, levels });
+const mk = (id, total, levels) => ({ id, name: id, total, levels, role: '' });
 // Thứ tự: Bồi Thực, Thương Đạo, Luyện Khí, Nuôi Dưỡng, Đan Đạo, Phù Lục, Trận pháp, Tụ Linh
 const base = () => ({
   disciples: [
@@ -104,4 +104,25 @@ test('importJson từ chối file sai', () => {
   assert.equal(L.importJson(base(), 'không phải json').ok, false);
   assert.equal(L.importJson(base(), '{"disciples":1}').ok, false);
   assert.equal(L.importJson(base(), 'null').ok, false);
+});
+
+test('chức vụ: totalAfterRole cộng/trừ đúng phần thưởng', () => {
+  assert.equal(L.totalAfterRole(100, '', 'leader'), 130);
+  assert.equal(L.totalAfterRole(130, 'leader', 'elder'), 110);
+  assert.equal(L.totalAfterRole(110, 'elder', ''), 100);
+  assert.equal(L.totalAfterRole(5, 'leader', ''), 0);
+});
+
+test('chức vụ: chỉ một Chưởng môn, người cũ bị hạ và trừ 30', () => {
+  let d = L.upsert(L.emptyData(), { id: 'a', name: 'A', total: 130, levels: [], role: 'leader' });
+  d = L.upsert(d, { id: 'b', name: 'B', total: 130, levels: [], role: 'leader' });
+  const a = d.disciples.find((x) => x.id === 'a');
+  assert.equal(a.role, '');
+  assert.equal(a.total, 100);
+  assert.equal(d.disciples.find((x) => x.id === 'b').role, 'leader');
+});
+
+test('chức vụ: sanitize giữ chức vụ hợp lệ, bỏ giá trị lạ', () => {
+  const r = L.sanitize({ disciples: [{ id: 'a', name: 'A', total: 1, levels: [], role: 'elder' }, { id: 'b', name: 'B', total: 1, levels: [], role: 'x' }], expelled: [] });
+  assert.deepEqual(r.disciples.map((d) => d.role), ['elder', '']);
 });

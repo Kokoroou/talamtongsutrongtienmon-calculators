@@ -36,7 +36,8 @@
   }
   const gem = (n) => `<span class="total" title="Tổng giá trị" aria-label="Tổng giá trị ${n}">${I('gem', 16)}${n}</span>`;
 
-  const ident = (name, total) => `<span class="ident"><span class="name">${esc(name)}</span>${gem(total)}</span>`;
+  const roleTag = (role) => (role ? `<span class="role ${role}">${L.ROLES[role].name}</span>` : '');
+  const ident = (name, total, role) => `<span class="ident"><span class="name">${esc(name)}</span>${roleTag(role)}${gem(total)}</span>`;
   const iconBtn = (act, icon, label, extra) =>
     `<button class="ibtn" data-act="${act}" aria-label="${label}" title="${label}" ${extra || ''}>${I(icon, 26)}</button>`;
   const undoBtn = () => iconBtn('undo', 'undo', 'Hoàn tác', data.history.length ? '' : 'disabled');
@@ -55,7 +56,7 @@
     const list = L.sortedByTotal(data.disciples);
     const body = list.length
       ? '<div class="grid">' + list.map((d) => `<article class="card" data-act="pick" data-id="${d.id}">
-          <div class="head"><button class="pick" data-act="pick" data-id="${d.id}" aria-label="Chọn ${esc(d.name)} để trục xuất">${ident(d.name, d.total)}</button>
+          <div class="head"><button class="pick" data-act="pick" data-id="${d.id}" aria-label="Chọn ${esc(d.name)} để trục xuất">${ident(d.name, d.total, d.role)}</button>
             ${iconBtn('edit', 'edit', 'Sửa ' + esc(d.name), `data-id="${d.id}"`)}</div>
           ${cells(d.levels)}</article>`).join('') + '</div>'
       : `<div class="empty">${I('scroll', 42)}<p>Thêm đệ tử đầu tiên</p><button class="btn primary" data-act="add">${I('plus', 16)}Thêm</button></div>`;
@@ -70,7 +71,7 @@
     const ranking = L.rank(src, data.disciples);
     const cards = ranking.map((r, i) => `<article class="card cand${i === 0 ? ' best' : ''}">
         ${i === 0 ? `<span class="crown" title="Nhiều cấp nhất" aria-label="Lựa chọn tốt nhất">${I('crown', 16)}</span>` : ''}
-        <div class="head">${ident(r.d.name, r.d.total)}
+        <div class="head">${ident(r.d.name, r.d.total, r.d.role)}
           <span class="gain${r.gain ? '' : ' zero'}" aria-label="Tăng ${r.gain} cấp">${I('up', 16)}${r.gain}</span>
           <button class="go" data-act="transfer" data-rec="${r.d.id}" aria-label="Truyền công cho ${esc(r.d.name)}" title="Truyền công">${I('arrow', 26)}</button></div>
         ${cells(r.d.levels, src.levels)}
@@ -78,7 +79,7 @@
     return `<header class="top">${iconBtn('back', 'back', 'Quay lại')}<h2>Truyền công</h2><div class="grow"></div></header>
       <main class="main"><div class="split">
         <div class="split-side">
-          <article class="card src"><div class="head">${ident(src.name, src.total)}
+          <article class="card src"><div class="head">${ident(src.name, src.total, src.role)}
             <span class="outbadge" title="Sẽ trục xuất" aria-label="Sẽ trục xuất">${I('door', 26)}</span></div>
             ${cells(src.levels)}</article>
           <button class="btn ghost-danger split-retire" data-act="retire" data-id="${src.id}">${I('door', 16)}Trục xuất, không truyền</button>
@@ -104,7 +105,9 @@
 
   function editView() {
     const d = view.id ? data.disciples.find((x) => x.id === view.id) : null;
-    const cur = d || { name: '', total: '', levels: L.SKILLS.map(() => 0) };
+    const cur = d || { name: '', total: '', levels: L.SKILLS.map(() => 0), role: '' };
+    const role = cur.role || '';
+    const roles = Object.keys(L.ROLES).map((k) => `<button type="button" role="radio" aria-checked="${role === k}" data-act="role" data-v="${k}">${L.ROLES[k].name}${L.ROLES[k].bonus ? ` +${L.ROLES[k].bonus}` : ''}</button>`).join('');
     const lv = L.SKILLS.map((s, i) => `<div class="fld skill"><label for="lv${i}">${I(window.Icons.SKILL_ICONS[i], 16)}<span>${s}</span></label>
       <div class="step"><button type="button" data-act="step" data-i="${i}" data-d="-1" aria-label="Giảm ${s}">${I('minus', 16)}</button>
       <input id="lv${i}" type="number" inputmode="numeric" min="0" max="${L.MAX_LEVEL}" value="${cur.levels[i]}">
@@ -116,6 +119,9 @@
           <div class="fld"><label for="f-name">Tên</label><input id="f-name" type="text" autocomplete="off" value="${esc(cur.name)}" placeholder="Tề Nhận Lộ"></div>
           <div class="fld"><label for="f-total">${I('gem', 16)}<span>Tổng giá trị</span></label><input id="f-total" type="number" inputmode="numeric" min="0" value="${cur.total}" placeholder="182"></div>
         </div>
+        <div class="fld"><label id="h-role">Chức vụ</label>
+          <div class="seg" id="roles" role="radiogroup" aria-labelledby="h-role" data-role="${role}">${roles}</div>
+          <small class="hint">Đổi chức vụ sẽ tự cộng/trừ tổng giá trị (Chưởng môn +30, Chưởng lão +10).</small></div>
         <div class="grid2 skills">${lv}</div>
         <div class="err" id="err" role="alert"></div>
         ${d ? `<button class="btn ghost-danger" id="del" data-act="delete" data-id="${d.id}">${I('trash', 16)}<span>Xóa đệ tử</span></button>` : ''}
@@ -203,7 +209,11 @@
     if (!name) { err.textContent = 'Nhập tên đệ tử.'; return; }
     if (totalRaw === '' || Number(totalRaw) < 0) { err.textContent = 'Nhập tổng giá trị (số từ 0 trở lên).'; return; }
     const levels = L.SKILLS.map((_, i) => document.getElementById('lv' + i).value);
-    setData(L.upsert(data, { id: view.id, name, total: totalRaw, levels }));
+    const role = document.getElementById('roles').dataset.role;
+    if (role === 'elder' && data.disciples.filter((x) => x.role === 'elder' && x.id !== view.id).length >= L.MAX_ELDERS) {
+      err.textContent = `Chỉ có tối đa ${L.MAX_ELDERS} Chưởng lão.`; return;
+    }
+    setData(L.upsert(data, { id: view.id, name, total: totalRaw, levels, role }));
     hideToast();
     go({ name: 'roster' });
   }
@@ -244,6 +254,16 @@
       case 'step': {
         const input = document.getElementById('lv' + t.dataset.i);
         input.value = L.clampLevel(Number(input.value) + Number(t.dataset.d));
+        break;
+      }
+      case 'role': {
+        const box = document.getElementById('roles');
+        const next = t.dataset.v;
+        const totalEl = document.getElementById('f-total');
+        if (next === box.dataset.role) break;
+        if (totalEl.value !== '') totalEl.value = L.totalAfterRole(totalEl.value, box.dataset.role, next);
+        box.dataset.role = next;
+        box.querySelectorAll('button').forEach((b) => b.setAttribute('aria-checked', String(b === t)));
         break;
       }
       case 'save': saveEdit(); break;
