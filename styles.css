@@ -315,3 +315,22 @@ h1,h2,h3{font-family:var(--font-display);margin:0;font-weight:700;letter-spacing
 .slots-elders{margin-top:0}
 .form input[type=number]{-moz-appearance:textfield;appearance:textfield}
 .form input[type=number]::-webkit-outer-spin-button,.form input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+
+/* ========== Màn Kế hoạch truyền công ========== */
+.plan .head{flex-wrap:wrap}
+.plan .head .name{flex:1;min-width:8ch}
+.steps-badge{display:inline-flex;align-items:center;gap:4px;font-weight:700;font-size:var(--t0);font-variant-numeric:tabular-nums;color:var(--ink);background:var(--cell-bg);border:1px solid var(--bd-soft);border-radius:99px;padding:2px var(--s2);flex:none}
+.sgs{display:flex;flex-wrap:wrap;gap:var(--s1)}
+.sg{display:inline-flex;align-items:center;gap:4px;min-height:28px;padding:2px var(--s2) 2px 6px;border-radius:var(--r-cell);background:var(--jade-soft);color:var(--jade);font-size:var(--t0);font-variant-numeric:tabular-nums}
+.sg .sk{color:var(--ink);font-weight:500}
+.sg b{color:var(--jade)}
+.steplist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:var(--s1)}
+.step{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:var(--s1) var(--s2);align-items:center;padding:var(--s2);border:1px solid var(--bd-soft);border-radius:var(--r-cell);background:var(--cell-bg)}
+.step .n{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;background:var(--btn-p-bg);color:var(--on-seal);font-size:var(--t0);font-weight:800;font-variant-numeric:tabular-nums}
+.step .who{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s1);min-width:0;overflow-wrap:anywhere}
+.step .who b{font-family:var(--font-display)}
+.step .sgs{grid-column:2/-1}
+.step .gain{font-size:var(--t1)}
+.check-fld{flex-direction:row;align-items:center;gap:var(--s2);cursor:pointer;font-weight:600}
+.check-fld input{width:20px;min-height:20px;flex:none;accent-color:var(--seal)}
+.plan>.btn{align-self:stretch}

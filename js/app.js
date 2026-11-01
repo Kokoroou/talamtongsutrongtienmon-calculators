@@ -5,6 +5,8 @@
   const app = document.getElementById('app');
   let data = window.Store.load();
   let view = { name: 'roster' };
+  let prefs = window.Store.loadPrefs();
+  let planCache = { data: null, key: '', value: null };
   let toast = null;
   let toastTimer = null;
 
@@ -48,7 +50,7 @@
   const ROOT_VIEWS = ['roster', 'roles', 'expelled', 'theme'];
   /** Thanh điều hướng: dưới cùng trên điện thoại, cột bên trên màn rộng. Thẻ đang mở sáng lên cả khi ở màn con. */
   function tabs(active) {
-    const parent = { transfer: 'roster', edit: 'roster', data: 'roster', 'role-pick': 'roles' }[active] || active;
+    const parent = { transfer: 'roster', edit: 'roster', data: 'roster', plan: 'roster', 'role-pick': 'roles' }[active] || active;
     const t = (key, icon, label, n) =>
       `<button data-act="tab-${key}" class="${parent === key ? 'on' : ''}" ${parent === key ? 'aria-current="page"' : ''} aria-label="${label}">${I(icon, 26)}<span>${label}</span><em>${n === undefined ? '' : n}</em></button>`;
     return `<nav class="tabs" aria-label="Điều hướng"><div class="brand" aria-hidden="true">${I('scroll', 26)}<span>Sổ Truyền Công</span></div>
@@ -63,7 +65,7 @@
             ${iconBtn('edit', 'edit', 'Sửa ' + esc(d.name), `data-id="${d.id}"`)}</div>
           ${cells(d.levels)}</article>`).join('') + '</div>'
       : `<div class="empty">${I('scroll', 42)}<p>Thêm đệ tử đầu tiên</p><button class="btn primary" data-act="add">${I('plus', 16)}Thêm</button></div>`;
-    return `<header class="top"><h1>Đệ tử</h1><div class="grow"></div>${list.length ? `<button class="btn primary add-wide" data-act="add">${I('plus', 16)}Thêm đệ tử</button>` : ''}${iconBtn('data', 'data', 'Sao lưu / khôi phục')}${undoBtn()}</header>
+    return `<header class="top"><h1>Đệ tử</h1><div class="grow"></div>${list.length ? `<button class="btn primary add-wide" data-act="add">${I('plus', 16)}Thêm đệ tử</button>` : ''}${list.length > 1 ? iconBtn('plan', 'plan', 'Gợi ý kế hoạch truyền công') : ''}${iconBtn('data', 'data', 'Sao lưu / khôi phục')}${undoBtn()}</header>
       <main class="main">${body}</main>
       ${list.length ? `<button class="fab" data-act="add" aria-label="Thêm đệ tử">${I('plus', 26)}</button>` : ''}`;
   }
@@ -90,6 +92,62 @@
         <div class="flow" aria-hidden="true">${I('up', 16)}</div>
         <div class="split-list">${cards ? `<div class="grid">${cards}</div>` : `<div class="empty">${I('people', 42)}<p>Chưa có đệ tử khác để nhận công</p></div>`}</div>
       </div></main>`;
+  }
+
+
+  /** Kế hoạch tính theo (dữ liệu, ngưỡng, giữ chức vụ); nhớ lại để vẽ lại không phải tính lại. */
+  function plansFor() {
+    const key = prefs.threshold + '|' + prefs.keepRoles;
+    if (planCache.data !== data || planCache.key !== key) {
+      planCache = { data, key, value: L.buildPlans(data, prefs.threshold, prefs.keepRoles) };
+    }
+    return planCache.value;
+  }
+
+  const planTitle = (p) => (p.kind === 'max' ? 'Tăng tối đa' : `Ít bước hơn · giữ ${p.ratio}%`);
+  const nameOf = (id) => { const x = data.disciples.find((d) => d.id === id); return x ? esc(x.name) : '?'; };
+
+  /** Các chuyên môn tăng thêm của cả kế hoạch hoặc của một bước: biểu tượng + số cấp. */
+  function skillGains(by) {
+    const out = by.map((v, i) => (v > 0 ? `<span class="sg" aria-label="${L.SKILLS[i]} tăng ${v}">${I(window.Icons.SKILL_ICONS[i], 16)}<span class="sk">${L.SKILLS[i]}</span><b>+${v}</b></span>` : '')).join('');
+    return `<span class="sgs">${out || '<span class="none">Không tăng</span>'}</span>`;
+  }
+
+  function planCard(p, i) {
+    const open = view.open === p.kind + p.ratio;
+    const steps = p.steps.map((s, k) => `<li class="step"><span class="n">${k + 1}</span>
+        <span class="who"><b>${nameOf(s.src)}</b>${I('arrow', 16)}<b>${nameOf(s.rec)}</b></span>
+        <span class="gain">${I('up', 16)}${s.gain}</span>${skillGains(s.by)}</li>`).join('');
+    const retire = p.retire.length
+      ? `<p class="note">Chỉ trục xuất, không cần truyền (${p.retire.length}): ${p.retire.map(nameOf).join(', ')}</p>` : '';
+    return `<article class="card plan${i === 0 ? ' best' : ''}">
+        ${i === 0 ? `<span class="crown" title="Tăng nhiều nhất" aria-label="Tăng nhiều nhất">${I('crown', 16)}</span>` : ''}
+        <div class="head"><span class="name">${planTitle(p)}</span>
+          <span class="gain" aria-label="Tăng ${p.gain} cấp" title="Tổng số cấp tăng">${I('up', 16)}${p.gain}</span>
+          <span class="steps-badge" aria-label="${p.stepCount} bước truyền công" title="Số bước truyền công">${I('arrow', 16)}${p.stepCount} bước</span></div>
+        ${skillGains(p.bySkill)}
+        ${p.steps.length ? `<button class="btn small" data-act="plan-toggle" data-key="${p.kind + p.ratio}" aria-expanded="${open}">${I(open ? 'minus' : 'plus', 16)}<span>${open ? 'Ẩn' : 'Xem'} ${p.stepCount} bước</span></button>` : ''}
+        ${open ? `<ol class="steplist">${steps}</ol>${retire}` : ''}
+        <button class="btn primary" data-act="plan-apply" data-kind="${p.kind}" data-ratio="${p.ratio}">${I('check', 16)}<span>Áp dụng kế hoạch này</span></button>
+      </article>`;
+  }
+
+  function planView() {
+    const r = plansFor();
+    const summary = r.donors
+      ? `Trục xuất <b>${r.donors}</b> người dưới ${prefs.threshold}, giữ <b>${r.survivors}</b> người.`
+      : `Không ai dưới ${prefs.threshold}${prefs.keepRoles ? ' (ngoài người có chức vụ)' : ''}.`;
+    const cards = r.plans.map(planCard).join('');
+    const empty = !r.donors ? '' : !r.survivors ? `<div class="empty">${I('people', 42)}<p>Không còn ai ở lại để nhận công, hạ ngưỡng xuống</p></div>` : '';
+    return `<header class="top">${iconBtn('back', 'back', 'Quay lại')}<h2>Kế hoạch truyền công</h2><div class="grow"></div>${undoBtn()}</header>
+      <main class="main narrow">
+        <div class="form"><div class="grid2">
+          <div class="fld"><label for="p-th">${I('gem', 16)}<span>Ngưỡng tổng giá trị</span></label><input id="p-th" type="number" inputmode="numeric" min="0" value="${prefs.threshold}"></div>
+          <label class="fld check-fld"><input id="p-roles" type="checkbox" ${prefs.keepRoles ? 'checked' : ''}><span>Giữ người có chức vụ</span></label>
+        </div></div>
+        <p class="note">${summary} Mỗi người bị trục xuất truyền thẳng cho một người ở lại. Ưu tiên tăng nhiều cấp nhất, rồi mới đến ít bước.</p>
+        ${cards}${empty}
+      </main>`;
   }
 
   /** Năm vị trí cố định: Chưởng môn ở trên, bốn Trưởng lão ở hàng dưới. */
@@ -230,7 +288,7 @@
   }
 
   function render() {
-    const html = { roster: rosterView, transfer: transferView, roles: rolesView, 'role-pick': rolePickView, expelled: expelledView, edit: editView, data: dataView, theme: themeView }[view.name]();
+    const html = { roster: rosterView, transfer: transferView, plan: planView, roles: rolesView, 'role-pick': rolePickView, expelled: expelledView, edit: editView, data: dataView, theme: themeView }[view.name]();
     app.classList.toggle('lift', !!toast);
     app.classList.toggle('sub', !ROOT_VIEWS.includes(view.name)); // màn con: ẩn thanh dưới trên điện thoại
     if (view.name === 'theme') T.preloadFonts();
@@ -269,6 +327,18 @@
       case 'import': {
         if (data.disciples.length + data.expelled.length && !armed(t, 'Bấm lần nữa để thay dữ liệu hiện tại')) break;
         document.getElementById('import-file').click();
+        break;
+      }
+      case 'plan': hideToast(); go({ name: 'plan', open: null }); break;
+      case 'plan-toggle': view = { ...view, open: view.open === t.dataset.key ? null : t.dataset.key }; render(); break;
+      case 'plan-apply': {
+        if (!armed(t, 'Bấm lần nữa để áp dụng')) break;
+        const p = plansFor().plans.find((x) => x.kind === t.dataset.kind && String(x.ratio) === t.dataset.ratio);
+        const r = p && L.applyPlan(data, p);
+        if (!r || !r.ok) break;
+        setData(r.data);
+        showToast(`Đã áp dụng <b>${r.steps}</b> bước truyền, tăng ${r.gain} cấp`);
+        go({ name: 'expelled' });
         break;
       }
       case 'tab-roles': go({ name: 'roles' }); break;
@@ -327,7 +397,7 @@
         if (!data.history.length) break;
         setData(L.undo(data));
         hideToast();
-        if (['transfer', 'edit', 'role-pick'].includes(view.name)) view = { name: 'roster' };
+        if (['transfer', 'edit', 'role-pick', 'plan'].includes(view.name)) view = { name: 'roster' };
         render();
         break;
     }
@@ -335,6 +405,17 @@
 
   app.addEventListener('change', (e) => {
     if (/^lv\d+$/.test(e.target.id) && e.target.value !== '') e.target.value = L.clampLevel(Number(e.target.value));
+    if (e.target.id === 'p-th') {
+      const n = Math.max(0, Math.floor(Number(e.target.value)) || 0);
+      prefs = { ...prefs, threshold: n };
+      window.Store.savePrefs(prefs);
+      render();
+    }
+    if (e.target.id === 'p-roles') {
+      prefs = { ...prefs, keepRoles: e.target.checked };
+      window.Store.savePrefs(prefs);
+      render();
+    }
     if (e.target.id === 'import-file' && e.target.files[0]) doImport(e.target.files[0]);
   });
 

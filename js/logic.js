@@ -33,9 +33,10 @@
     return Math.min(MAX_LEVEL, Math.max(0, n));
   }
 
+  const gainLv = (a, b) => a.reduce((sum, v, i) => sum + Math.max(0, v - b[i]), 0);
   /** Số cấp người nhận tăng thêm: mỗi chuyên môn lấy cấp cao hơn, không cộng dồn. */
   function gain(src, rec) {
-    return src.levels.reduce((sum, v, i) => sum + Math.max(0, v - rec.levels[i]), 0);
+    return gainLv(src.levels, rec.levels);
   }
 
   /** Xếp người nhận: nhiều cấp tăng nhất trước, hòa thì tổng giá trị lớn hơn trước. */
@@ -181,6 +182,185 @@
     }
   }
 
+  /* ===================== Gợi ý kế hoạch truyền công =====================
+   * Bài toán: những người dưới ngưỡng bị trục xuất, mỗi người truyền thẳng cho MỘT người ở lại
+   * (chỉ số truyền vào người sắp bị trục xuất sẽ mất, nên không đi vòng). Người nhận lấy cấp cao
+   * hơn từng chuyên môn, nên mức tăng của một nhóm là tổng cấp cao nhất mỗi chuyên môn trong nhóm.
+   * Mục tiêu: tăng nhiều cấp nhất, rồi mới đến ít bước (ít người phải truyền) nhất.
+   * Người truyền không đem lại cấp nào thì không cần truyền, chỉ trục xuất. */
+  const PLAN_LEAN_RATIOS = [0.95, 0.8]; // các phương án "ít bước": giữ lại ít nhất ngần này mức tăng tối đa
+
+  /** Bộ sinh số ngẫu nhiên có hạt giống để kết quả luôn giống nhau với cùng dữ liệu. */
+  function rng(seed) {
+    let a = seed >>> 0;
+    return () => {
+      a = (a + 0x6D2B79F5) >>> 0;
+      let t = a;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  /** Chia theo ngưỡng: dưới ngưỡng là người truyền (trừ người có chức vụ nếu `keepRoles`), còn lại ở lại. */
+  function splitByThreshold(data, threshold, keepRoles) {
+    const t = Number(threshold);
+    const donors = [];
+    const survivors = [];
+    data.disciples.forEach((d) => {
+      const out = Number.isFinite(t) && d.total < t && !(keepRoles && d.role);
+      (out ? donors : survivors).push(d);
+    });
+    return { donors: sortedByTotal(donors), survivors: sortedByTotal(survivors) };
+  }
+
+  /** Tham lam theo cặp: mỗi bước chọn cặp (người truyền → người ở lại) tăng nhiều nhất, dừng khi hết lợi. */
+  function greedyPairs(S, D) {
+    const cur = S.map((l) => l.slice());
+    const left = D.map((_, i) => i);
+    const pairs = [];
+    while (left.length) {
+      let best = null;
+      left.forEach((d, k) => cur.forEach((lv, g) => {
+        const v = gainLv(D[d], lv);
+        if (!best || v > best.v) best = { v, k, d, g };
+      }));
+      if (!best || best.v <= 0) break;
+      cur[best.g] = cur[best.g].map((v, i) => Math.max(v, D[best.d][i]));
+      left.splice(best.k, 1);
+      pairs.push([best.d, best.g]);
+    }
+    return pairs;
+  }
+
+  /** Leo đồi: dời từng người truyền sang người ở lại khác (hoặc bỏ truyền = -1) khi tăng thêm cấp, hoặc bằng cấp mà bớt được một bước. */
+  function descend(S, D, assign, rand) {
+    const ns = S.length;
+    const members = S.map(() => []);
+    assign.forEach((g, d) => { if (g >= 0) members[g].push(d); });
+    const score = (g, list) => S[g].reduce((sum, base, i) => sum + list.reduce((m, d) => Math.max(m, D[d][i]), base), 0);
+    const sc = members.map((m, g) => score(g, m));
+    let moved = true;
+    while (moved) {
+      moved = false;
+      const order = D.map((_, i) => i);
+      for (let i = order.length - 1; i > 0; i--) { const j = Math.floor(rand() * (i + 1)); [order[i], order[j]] = [order[j], order[i]]; }
+      for (const d of order) {
+        const from = assign[d];
+        const rm = from >= 0 ? score(from, members[from].filter((x) => x !== d)) - sc[from] : 0;
+        let best = { dv: 0, ds: 0, to: from };
+        for (let to = -1; to < ns; to++) {
+          if (to === from) continue;
+          const dv = rm + (to >= 0 ? score(to, members[to].concat(d)) - sc[to] : 0);
+          const ds = (to >= 0 ? 1 : 0) - (from >= 0 ? 1 : 0);
+          if (dv > best.dv || (dv === best.dv && ds < best.ds)) best = { dv, ds, to };
+        }
+        if (best.to === from) continue;
+        if (from >= 0) { members[from] = members[from].filter((x) => x !== d); sc[from] = score(from, members[from]); }
+        if (best.to >= 0) { members[best.to].push(d); sc[best.to] = score(best.to, members[best.to]); }
+        assign[d] = best.to;
+        moved = true;
+      }
+    }
+    return { assign, value: sc.reduce((a, b) => a + b, 0), steps: assign.filter((g) => g >= 0).length };
+  }
+
+  /** Tìm phân công tăng nhiều cấp nhất, trong đó ít bước nhất (tìm kiếm cục bộ có khởi động lại, hạt giống cố định). */
+  function optimize(S, D) {
+    const rand = rng(20260101);
+    const ns = S.length;
+    const start = D.map(() => -1);
+    greedyPairs(S, D).forEach(([d, g]) => { start[d] = g; });
+    let best = descend(S, D, start, rand);
+    const rounds = D.length * ns > 3000 ? 8 : 30;
+    const better = (a, b) => a.value > b.value || (a.value === b.value && a.steps < b.steps);
+    for (let r = 0; r < rounds; r++) {
+      const init = r % 2 === 0
+        ? best.assign.map((g) => (rand() < 0.25 ? Math.floor(rand() * (ns + 1)) - 1 : g)) // xáo trộn nhẹ bản tốt nhất
+        : D.map(() => Math.floor(rand() * ns));                                          // khởi tạo ngẫu nhiên
+      const res = descend(S, D, init, rand);
+      if (better(res, best)) best = res;
+    }
+    return best;
+  }
+
+  /** Dựng kế hoạch từ danh sách cặp [chỉ số người truyền, chỉ số người nhận]; các bước xếp theo mức tăng giảm dần. */
+  function makePlan(kind, donors, survivors, pairs) {
+    const cur = survivors.map((s) => s.levels.slice());
+    const left = pairs.slice();
+    const steps = [];
+    const bySkill = SKILLS.map(() => 0);
+    while (left.length) {
+      let bi = 0;
+      let bg = -1;
+      left.forEach(([d, g], k) => { const v = gainLv(donors[d].levels, cur[g]); if (v > bg) { bg = v; bi = k; } });
+      const [d, g] = left.splice(bi, 1)[0];
+      if (bg <= 0) continue;
+      const by = SKILLS.map((_, i) => Math.max(0, donors[d].levels[i] - cur[g][i]));
+      cur[g] = cur[g].map((v, i) => Math.max(v, donors[d].levels[i]));
+      steps.push({ src: donors[d].id, rec: survivors[g].id, gain: bg, by });
+      by.forEach((v, i) => { bySkill[i] += v; });
+    }
+    const used = new Set(steps.map((s) => s.src));
+    return {
+      kind, steps, retire: donors.filter((d) => !used.has(d.id)).map((d) => d.id),
+      gain: steps.reduce((n, s) => n + s.gain, 0), bySkill, stepCount: steps.length,
+    };
+  }
+
+  /**
+   * Các kế hoạch gợi ý cho một ngưỡng. Trả về { donors, survivors, plans }, `plans` xếp theo
+   * mức tăng giảm dần rồi số bước tăng dần; kế hoạch nào bị kế hoạch khác vượt cả hai mặt thì bỏ.
+   * kind 'max' = tăng tối đa (ít bước nhất trong các cách đạt mức đó); 'lean' = ít bước hơn, giữ `ratio`% mức tăng.
+   */
+  function buildPlans(data, threshold, keepRoles) {
+    const { donors, survivors } = splitByThreshold(data, threshold, keepRoles);
+    const out = { donors: donors.length, survivors: survivors.length, plans: [] };
+    if (!donors.length || !survivors.length) return out;
+    const S = survivors.map((s) => s.levels);
+    const D = donors.map((d) => d.levels);
+    const opt = optimize(S, D);
+    const maxPairs = [];
+    opt.assign.forEach((g, d) => { if (g >= 0) maxPairs.push([d, g]); });
+    const max = makePlan('max', donors, survivors, maxPairs);
+    max.ratio = 100;
+    const cands = [max];
+    const greedy = greedyPairs(S, D);
+    for (const ratio of PLAN_LEAN_RATIOS) {
+      const need = Math.ceil(ratio * max.gain);
+      for (let k = 1; k <= greedy.length && max.gain > 0; k++) {
+        const p = makePlan('lean', donors, survivors, greedy.slice(0, k));
+        if (p.gain >= need) { p.ratio = Math.round((p.gain / max.gain) * 100); cands.push(p); break; }
+      }
+    }
+    cands.sort((a, b) => b.gain - a.gain || a.stepCount - b.stepCount);
+    let minSteps = Infinity;
+    out.plans = cands.filter((p) => (p.stepCount < minSteps ? ((minSteps = p.stepCount), true) : false));
+    return out;
+  }
+
+  /** Áp dụng cả kế hoạch vào sổ trong một lần (hoàn tác một lần). Từ chối nếu dữ liệu đã đổi so với lúc lập kế hoạch. */
+  function applyPlan(data, plan) {
+    const ids = new Set(data.disciples.map((d) => d.id));
+    const order = plan.steps.map((s) => s.src).concat(plan.retire);
+    if (!plan.steps.every((s) => ids.has(s.src) && ids.has(s.rec)) || !plan.retire.every((id) => ids.has(id))) return { ok: false, data };
+    const next = withHistory(data, (d) => {
+      plan.steps.forEach((s) => {
+        const src = d.disciples.find((x) => x.id === s.src);
+        const rec = d.disciples.find((x) => x.id === s.rec);
+        rec.levels = rec.levels.map((v, i) => Math.max(v, src.levels[i]));
+      });
+      order.forEach((id) => {
+        const x = d.disciples.find((y) => y.id === id);
+        d.expelled.push({ id: x.id, name: x.name, total: x.total, done: false });
+      });
+      const gone = new Set(order);
+      d.disciples = d.disciples.filter((x) => !gone.has(x.id));
+      return d;
+    });
+    return { ok: true, data: next, gain: plan.gain, steps: plan.stepCount };
+  }
+
   const EXPORT_APP = 'tlts-truyen-cong';
 
   /** Chuỗi JSON để xuất (không kèm lịch sử hoàn tác). */
@@ -203,5 +383,5 @@
     return { ok: true, data: next, disciples: clean.disciples.length, expelled: clean.expelled.length };
   }
 
-  return { exportJson, importJson, SKILLS, MAX_LEVEL, ROLES, ELDER_ROLES, roleBonus, totalAfterRole, assignRole, unassignRole, emptyData, newId, clampLevel, gain, rank, sortedByTotal, transfer, retire, undo, upsert, remove, toggleDone, clearExpelled, sanitize };
+  return { exportJson, importJson, SKILLS, MAX_LEVEL, ROLES, ELDER_ROLES, roleBonus, totalAfterRole, assignRole, unassignRole, emptyData, newId, clampLevel, gain, rank, sortedByTotal, transfer, retire, buildPlans, applyPlan, splitByThreshold, undo, upsert, remove, toggleDone, clearExpelled, sanitize };
 });

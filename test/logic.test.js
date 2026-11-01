@@ -153,3 +153,124 @@ test('chức vụ: sanitize giữ chức vụ hợp lệ, bỏ giá trị lạ',
   const r = L.sanitize({ disciples: [{ id: 'a', name: 'A', total: 1, levels: [], role: 'elder' }, { id: 'b', name: 'B', total: 1, levels: [], role: 'x' }], expelled: [] });
   assert.deepEqual(r.disciples.map((d) => d.role), ['elder1', '']);
 });
+
+// ---------- Gợi ý kế hoạch truyền công ----------
+const planData = (list) => ({ disciples: list, expelled: [], history: [] });
+const lv = (...a) => a.concat([0, 0, 0, 0, 0, 0, 0, 0]).slice(0, 8);
+
+test('buildPlans: chia theo ngưỡng, giữ người có chức vụ khi được yêu cầu', () => {
+  const d = planData([mk('lo', 100, lv(5)), { ...mk('boss', 100, lv(9)), role: 'elder1' }, mk('hi', 300, lv(1))]);
+  assert.deepEqual(L.splitByThreshold(d, 200, false).donors.map((x) => x.id), ['boss', 'lo']);
+  assert.deepEqual(L.splitByThreshold(d, 200, true).donors.map((x) => x.id), ['lo']);
+  assert.deepEqual(L.splitByThreshold(d, 200, true).survivors.map((x) => x.id), ['boss', 'hi']);
+  assert.deepEqual(L.splitByThreshold(d, 'x', true).donors, []);
+});
+
+test('buildPlans: không có người bị loại hoặc không ai ở lại thì không có kế hoạch', () => {
+  const d = planData([mk('a', 100, lv(5)), mk('b', 120, lv(1))]);
+  assert.deepEqual(L.buildPlans(d, 50, true).plans, []);
+  assert.deepEqual(L.buildPlans(d, 999, true).plans, []);
+});
+
+test('buildPlans: chọn cách gán tăng nhiều hơn tham lam theo người nhận tốt nhất từng bước', () => {
+  // x có Bồi Thực 9, y có Thương Đạo 9. s1 có sẵn Bồi Thực 8, s2 trống.
+  // Tham lam cặp: x→s2 (+9) rồi y→s1 (+9) = 18; cách khác: x→s1 chỉ +1 nên không tốt hơn.
+  const d = planData([mk('x', 10, lv(9, 0)), mk('y', 11, lv(0, 9)), mk('s1', 300, lv(8, 0)), mk('s2', 301, lv(0, 0))]);
+  const r = L.buildPlans(d, 100, false);
+  const p = r.plans[0];
+  assert.equal(p.kind, 'max');
+  assert.equal(p.gain, 18);
+  assert.equal(p.stepCount, 2);
+  assert.deepEqual(p.retire, []);
+});
+
+test('buildPlans: người không đem lại cấp nào chỉ trục xuất, không tính là một bước', () => {
+  const d = planData([mk('x', 10, lv(9)), mk('z', 12, lv(2)), mk('s', 300, lv(0))]);
+  const p = L.buildPlans(d, 100, false).plans[0];
+  assert.equal(p.gain, 9);
+  assert.deepEqual(p.steps.map((s) => s.src), ['x']);
+  assert.deepEqual(p.retire, ['z']);
+  assert.deepEqual(p.bySkill, [9, 0, 0, 0, 0, 0, 0, 0]);
+});
+
+test('buildPlans: ngang cấp thì chọn ít bước (hai người cùng cấp cao nhất chỉ cần một)', () => {
+  const d = planData([mk('x', 10, lv(5, 0)), mk('y', 11, lv(5, 0)), mk('s', 300, lv(0))]);
+  const p = L.buildPlans(d, 100, false).plans[0];
+  assert.equal(p.gain, 5);
+  assert.equal(p.stepCount, 1);
+});
+
+test('buildPlans: kiểm chứng với vét cạn trên dữ liệu ngẫu nhiên nhỏ (tối đa cấp, rồi ít bước nhất)', () => {
+  let seed = 7;
+  const rnd = (n) => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed % n; };
+  for (let trial = 0; trial < 40; trial++) {
+    const nd = 2 + rnd(4);
+    const ns = 1 + rnd(3);
+    const mkLv = () => Array.from({ length: 8 }, () => (rnd(3) === 0 ? 0 : rnd(8)));
+    const donors = Array.from({ length: nd }, (_, i) => mk('d' + i, 10 + i, mkLv()));
+    const surv = Array.from({ length: ns }, (_, i) => mk('s' + i, 500 + i, mkLv()));
+    const data = planData(donors.concat(surv));
+    const plan = L.buildPlans(data, 100, false).plans[0];
+    // vét cạn: mỗi người truyền chọn một người nhận hoặc bỏ (-1)
+    let bestV = -1;
+    let bestS = Infinity;
+    const total = (ns + 1) ** nd;
+    for (let code = 0; code < total; code++) {
+      const g = surv.map((s) => s.levels.slice());
+      let c = code;
+      let steps = 0;
+      for (let i = 0; i < nd; i++) {
+        const t = (c % (ns + 1)) - 1;
+        c = Math.floor(c / (ns + 1));
+        if (t >= 0) { g[t] = g[t].map((v, k) => Math.max(v, donors[i].levels[k])); steps++; }
+      }
+      const v = g.reduce((n, l, k) => n + l.reduce((a, b, i) => a + b - surv[k].levels[i], 0), 0);
+      if (v > bestV || (v === bestV && steps < bestS)) { bestV = v; bestS = steps; }
+    }
+    assert.equal(plan.gain, bestV, `trial ${trial}: gain`);
+    // số bước tối thiểu thật sự = bước có đóng góp; vét cạn có thể đếm bước thừa nên so sánh <=
+    assert.ok(plan.stepCount <= bestS, `trial ${trial}: steps ${plan.stepCount} > ${bestS}`);
+  }
+});
+
+test('buildPlans: các phương án ít bước giữ đúng tỉ lệ, ít bước hơn và không bị vượt', () => {
+  const d = planData([
+    mk('a', 10, lv(10)), mk('b', 11, lv(0, 10)), mk('c', 12, lv(0, 0, 10)), mk('e', 13, lv(0, 0, 0, 1)),
+    mk('s', 500, lv(0)), mk('t', 501, lv(0)),
+  ]);
+  const { plans } = L.buildPlans(d, 100, false);
+  assert.equal(plans[0].kind, 'max');
+  assert.equal(plans[0].gain, 31);
+  for (let i = 1; i < plans.length; i++) {
+    assert.ok(plans[i].gain < plans[i - 1].gain && plans[i].stepCount < plans[i - 1].stepCount);
+  }
+  assert.ok(plans.length >= 2);
+  assert.ok(plans[1].kind === 'lean' && plans[1].ratio >= 80);
+});
+
+test('buildPlans: cùng dữ liệu cho cùng kết quả', () => {
+  const d = planData(['a', 'b', 'c', 'd'].map((i, k) => mk(i, 10 + k, lv(k, 3 - k, k % 2, 1))).concat([mk('s', 500, lv(1)), mk('t', 501, lv(0, 1))]));
+  assert.deepEqual(L.buildPlans(d, 100, false), L.buildPlans(d, 100, false));
+});
+
+test('applyPlan: kết quả giống truyền công từng bước rồi trục xuất số còn lại, hoàn tác một lần', () => {
+  const d = planData([mk('x', 10, lv(9, 0)), mk('y', 11, lv(0, 9)), mk('z', 12, lv(1)), mk('s1', 300, lv(8, 0)), mk('s2', 301, lv(0, 0))]);
+  const plan = L.buildPlans(d, 100, false).plans[0];
+  const r = L.applyPlan(d, plan);
+  assert.equal(r.ok, true);
+  let seq = d;
+  plan.steps.forEach((s) => { seq = L.transfer(seq, s.src, s.rec).data; });
+  plan.retire.forEach((id) => { seq = L.retire(seq, id); });
+  assert.deepEqual(r.data.disciples, seq.disciples);
+  assert.deepEqual(r.data.expelled, seq.expelled);
+  assert.equal(r.data.history.length, 1);
+  assert.deepEqual(L.undo(r.data).disciples, d.disciples);
+  assert.equal(L.undo(r.data).expelled.length, 0);
+});
+
+test('applyPlan: từ chối khi dữ liệu đã đổi', () => {
+  const d = planData([mk('x', 10, lv(9)), mk('s', 300, lv(0))]);
+  const plan = L.buildPlans(d, 100, false).plans[0];
+  const r = L.applyPlan(L.remove(d, 'x'), plan);
+  assert.equal(r.ok, false);
+});
