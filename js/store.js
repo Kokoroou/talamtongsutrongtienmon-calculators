@@ -24,5 +24,23 @@
     }
   }
 
-  root.Store = { load, save };
+  const PREFS_KEY = 'tlts-truyen-cong-plan-v1';
+  const PREFS_DEFAULT = { threshold: 250, keepRoles: true };
+
+  /** Thiết lập màn Kế hoạch (ngưỡng, giữ chức vụ). Hỏng thì dùng mặc định. */
+  function loadPrefs() {
+    try {
+      const p = JSON.parse(root.localStorage.getItem(PREFS_KEY));
+      const t = p && p.threshold !== null && p.threshold !== '' ? Math.floor(Number(p.threshold)) : NaN;
+      return { threshold: Number.isFinite(t) && t >= 0 ? t : PREFS_DEFAULT.threshold, keepRoles: p && typeof p.keepRoles === 'boolean' ? p.keepRoles : PREFS_DEFAULT.keepRoles };
+    } catch (e) {
+      return { ...PREFS_DEFAULT };
+    }
+  }
+
+  function savePrefs(p) {
+    try { root.localStorage.setItem(PREFS_KEY, JSON.stringify(p)); } catch (e) { /* bỏ qua */ }
+  }
+
+  root.Store = { load, save, loadPrefs, savePrefs };
 })(window);
