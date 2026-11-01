@@ -356,6 +356,7 @@
       });
       const gone = new Set(order);
       d.disciples = d.disciples.filter((x) => !gone.has(x.id));
+      d.expelled = sortedByTotal(d.expelled); // danh sách chờ trục xuất theo giá trị tăng dần
       return d;
     });
     return { ok: true, data: next, gain: plan.gain, steps: plan.stepCount };

@@ -274,3 +274,13 @@ test('applyPlan: từ chối khi dữ liệu đã đổi', () => {
   const r = L.applyPlan(L.remove(d, 'x'), plan);
   assert.equal(r.ok, false);
 });
+
+test('applyPlan: danh sách chờ trục xuất được sắp theo giá trị tăng dần', () => {
+  const d = planData([mk('a', 50, lv(9, 0)), mk('b', 10, lv(0, 9)), mk('c', 30, lv(1)), mk('s', 300, lv(0, 0))]);
+  d.expelled = [{ id: 'old', name: 'old', total: 40, done: true }];
+  const r = L.applyPlan(d, L.buildPlans(d, 100, false).plans[0]);
+  assert.equal(r.ok, true);
+  const totals = r.data.expelled.map((e) => e.total);
+  assert.deepEqual(totals, [...totals].sort((x, y) => x - y));
+  assert.equal(r.data.expelled.find((e) => e.id === 'old').done, true);
+});
